@@ -3555,3 +3555,206 @@ custom orchestration
 without changing the underlying conceptual model.
 
 That makes the **multi-agent capability dynamic**: if a model/runtime can natively spawn or coordinate agents, we leverage it; if not, we degrade gracefully. It also means the progressive questioning engine can conclude that **the correct answer isn't one specialized agent, but a team of specialized agents**.
+
+
+Yes — **that separation is much stronger.**
+
+## The naming architecture
+
+### **PROAGENTS**
+
+The **technology / open-source framework**.
+
+> **PROAGENTS**
+> *The open standard and tooling for building specialized AI professionals.*
+
+It represents the underlying system:
+
+```text
+PROAGENTS
+├── Agent Skill
+├── CLI
+├── Schemas
+├── Progressive Discovery
+├── Agent Composition
+├── Skills
+├── Tools
+├── Workflows
+├── Policies
+├── Evaluations
+└── Evolution
+```
+
+### **PROAGENT**
+
+The **individual product/output**.
+
+> **PROAGENT**
+> *A specialized AI professional built for a specific job.*
+
+So you can say:
+
+> **Built with PROAGENTS.**
+
+And:
+
+> **This repository has three PROAGENTS: Backend, QA, and Security.**
+
+Actually, I'd make the terminology even cleaner:
+
+```text
+PROAGENTS
+    │
+    │ technology
+    ▼
+PROAGENT
+    │
+    │ generated professional
+    ▼
+Professional Team
+```
+
+---
+
+## The CLI
+
+I'd make the CLI:
+
+```bash
+proagent init
+proagent discover
+proagent build
+proagent inspect
+proagent validate
+proagent eval
+proagent evolve
+```
+
+Not `proagents`.
+
+The CLI operates on **a ProAgent** or **a ProAgent team**, while the technology is **PROAGENTS**.
+
+---
+
+## The Skill
+
+The most important artifact becomes:
+
+```text
+.agents/
+└── skills/
+    └── proagents/
+        └── SKILL.md
+```
+
+The skill's job:
+
+> **Teach an AI agent how to progressively discover, design, build, evaluate, and evolve specialized ProAgents.**
+
+This is the key distinction from traditional agent frameworks.
+
+You aren't building an application where users configure agents.
+
+You're giving **agents the capability to build other agents**.
+
+---
+
+## The repository
+
+I'd now use:
+
+```text
+.proagents/
+```
+
+rather than `.progen` or `.agentforge`.
+
+Example:
+
+```text
+my-repository/
+│
+├── AGENTS.md
+│
+├── .agents/
+│   └── skills/
+│       └── proagents/
+│           ├── SKILL.md
+│           ├── references/
+│           └── scripts/
+│
+└── .proagents/
+    ├── manifest.yaml
+    │
+    ├── specification/
+    │   ├── intent.yaml
+    │   ├── requirements.yaml
+    │   ├── decisions.yaml
+    │   └── unknowns.yaml
+    │
+    ├── agents/
+    │   ├── backend.yaml
+    │   ├── qa.yaml
+    │   └── security.yaml
+    │
+    ├── skills/
+    ├── tools/
+    ├── workflows/
+    ├── policies/
+    └── evaluations/
+```
+
+---
+
+## And the positioning becomes much clearer
+
+### PROAGENTS
+
+**Build AI professionals, not prompts.**
+
+Or:
+
+> **PROAGENTS — The open-source technology for building specialized AI professionals.**
+
+### PROAGENT
+
+> **A ProAgent is an AI professional engineered for a specific job, repository, and operating environment.**
+
+That gives you a very useful vocabulary:
+
+**Agent** → generic AI worker
+**ProAgent** → specialized professional
+**PROAGENTS** → technology for creating them
+
+---
+
+### And this sentence is particularly strong:
+
+> **PROAGENTS turns general-purpose AI agents into specialized professionals.**
+
+The mechanism:
+
+```text
+GENERAL AGENT
+      │
+      │ PROAGENTS
+      ▼
+PROGRESSIVE DISCOVERY
+      │
+      ├── Context
+      ├── Responsibilities
+      ├── Skills
+      ├── Tools
+      ├── Knowledge
+      ├── Workflows
+      ├── Policies
+      └── Evaluations
+      │
+      ▼
+   PROAGENT
+      │
+      ▼
+SPECIALIZED PROFESSIONAL
+```
+
+I think **PROAGENTS / PROAGENT** is a significantly better naming system than Agent Forge because it describes **what you're creating**, rather than the metaphor of how you're creating it.

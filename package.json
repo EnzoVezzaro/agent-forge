@@ -1,0 +1,81 @@
+{
+  "name": "proagent",
+  "version": "0.1.0",
+  "description": "ProAgents — an agentic CLI + skill that turns an incomplete idea into a well-defined, validated multi-agent system through progressive questioning. Provider-agnostic, context-framework pluggable.",
+  "type": "module",
+  "license": "MIT",
+  "author": "ProAgents contributors",
+  "homepage": "https://github.com/proagents-dev/proagents#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/proagents-dev/proagents.git"
+  },
+  "bugs": {
+    "url": "https://github.com/proagents-dev/proagents/issues"
+  },
+  "keywords": [
+    "agent",
+    "agents",
+    "multi-agent",
+    "agent-builder",
+    "agent-skills",
+    "skill",
+    "skills",
+    "cli",
+    "ai",
+    "context-engineering",
+    "orchestration",
+    "mcp",
+    "claude",
+    "codex",
+    "cursor"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "proagent": "./dist/cli/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./context": {
+      "types": "./dist/context/types.d.ts",
+      "default": "./dist/context/types.js"
+    }
+  },
+  "files": [
+    "dist",
+    ".agents/skills/proagent",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cli": "node ./dist/cli/index.js",
+    "docs:dev": "bun --bun vitepress dev docs",
+    "docs:build": "bun --bun vitepress build docs",
+    "docs:preview": "bun --bun vitepress preview docs"
+  },
+  "dependencies": {
+    "yaml": "^2.6.0"
+  },
+  "optionalDependencies": {
+    "acc-code-context": "^0.6.9"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitepress": "^1.6.0",
+    "vitest": "^3.2.0"
+  }
+}

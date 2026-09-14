@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# ProAgents session state (inspectable, but session-local)
+.proagent/
+
+# Environment / secrets
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Vendored third-party skill pack (installed locally via `npx skills add`); keep only our shipped skill
+.agents/skills/*
+!.agents/skills/proagent/
+.claude/
+
+# Local state of the vendored skills install (the pack itself is not committed)
+skills-lock.json
