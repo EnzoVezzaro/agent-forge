@@ -7,21 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Stripe & per-crew pricing** — the project is fully open source with donations only
+  (GitHub Sponsors + Ko-fi). Removed `pricing`/`checkoutUrl` from crew definitions and the
+  catalog schema, the `crew checkout` command, all Stripe env vars, and every pricing UI
+  (catalog cards, detail buy button, builder pricing tab). All listings are free · MIT.
+
 ### Added
 
 - **`.env` / `.env.example`** — all credentials centralized in a gitignored `.env` with a
   committed template; `.gitignore` now keeps `!.env.example` tracked
 - Dependency-free `.env` loader for the CLI (walks up to the nearest `.env`/`.env.local`,
   then falls back to user-global `~/.proagent/.env`; real environment variables always win)
-- `proagent crew checkout <id>` — mints a real Stripe Payment Link for a paid crew using
-  `STRIPE_SECRET_KEY` from env/.env (local-only; only the URL is committed to the catalog)
 - SPA build-time config from root `.env` (`envDir: ..`): `VITE_GITHUB_APP_CLIENT_ID`,
   `VITE_MARKET_REPO`, `VITE_CLERK_PUBLISHABLE_KEY` replace hardcoded values
+- Donation links in the marketplace app (header ♥ Donate button, footer, detail page,
+  builder ship tab) — Sponsors + Ko-fi, no payment processor in the codebase
 - 7 env tests (parsing, precedence, directory walk-up, global fallback, sensitivity classes)
 
 ### Changed
 
-- `crew publish`/`checkout` tokens and repo now resolve from env/`.env` (`GITHUB_TOKEN`,
+- `crew publish` tokens and repo now resolve from env/`.env` (`GITHUB_TOKEN`,
   `PROAGENT_MARKET_REPO`) — flags still override
 
 ### Added

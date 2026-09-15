@@ -50,7 +50,7 @@ describe("env loader", () => {
 
     await fs.writeFile(
       path.join(dir, ".env"),
-      "PROAGENT_MARKET_REPO=dotenv/repo\nSTRIPE_SECRET_KEY=sk_test_dotenv\n",
+      "PROAGENT_MARKET_REPO=dotenv/repo\nGITHUB_TOKEN=tok_dotenv\n",
     );
     await fs.writeFile(
       path.join(dir, ".env.local"),
@@ -58,20 +58,20 @@ describe("env loader", () => {
     );
 
     const saved = process.env.PROAGENT_MARKET_REPO;
-    const savedStripe = process.env.STRIPE_SECRET_KEY;
+    const savedToken = process.env.GITHUB_TOKEN;
     try {
       delete process.env.PROAGENT_MARKET_REPO;
-      delete process.env.STRIPE_SECRET_KEY;
+      delete process.env.GITHUB_TOKEN;
       loadDotEnv(dir);
       // .env.local takes precedence over .env
       expect(process.env.PROAGENT_MARKET_REPO).toBe("dotenv-local/repo");
-      expect(process.env.STRIPE_SECRET_KEY).toBe("sk_test_dotenv");
+      expect(process.env.GITHUB_TOKEN).toBe("tok_dotenv");
     } finally {
       // restore
       if (saved === undefined) delete process.env.PROAGENT_MARKET_REPO;
       else process.env.PROAGENT_MARKET_REPO = saved;
-      if (savedStripe === undefined) delete process.env.STRIPE_SECRET_KEY;
-      else process.env.STRIPE_SECRET_KEY = savedStripe;
+      if (savedToken === undefined) delete process.env.GITHUB_TOKEN;
+      else process.env.GITHUB_TOKEN = savedToken;
     }
   });
 
@@ -104,26 +104,26 @@ describe("env loader", () => {
     await fs.mkdir(path.join(fakeHome, ".proagent"), { recursive: true });
     await fs.writeFile(
       path.join(fakeHome, ".proagent", ".env"),
-      "STRIPE_SECRET_KEY=sk_test_global\n",
+      "GITHUB_TOKEN=tok_global\n",
     );
 
-    const savedStripe = process.env.STRIPE_SECRET_KEY;
+    const savedToken = process.env.GITHUB_TOKEN;
     const savedHome = process.env.HOME;
     try {
-      delete process.env.STRIPE_SECRET_KEY;
+      delete process.env.GITHUB_TOKEN;
       process.env.HOME = fakeHome;
       loadDotEnv(project); // project has no .env → global fallback
-      expect(process.env.STRIPE_SECRET_KEY).toBe("sk_test_global");
+      expect(process.env.GITHUB_TOKEN).toBe("tok_global");
     } finally {
-      if (savedStripe === undefined) delete process.env.STRIPE_SECRET_KEY;
-      else process.env.STRIPE_SECRET_KEY = savedStripe;
+      if (savedToken === undefined) delete process.env.GITHUB_TOKEN;
+      else process.env.GITHUB_TOKEN = savedToken;
       if (savedHome === undefined) delete process.env.HOME;
       else process.env.HOME = savedHome;
     }
   });
 
   it("ENV-004: sensitive names are classified correctly", () => {
-    expect(isSensitiveEnvName("STRIPE_SECRET_KEY")).toBe(true);
+    expect(isSensitiveEnvName("DATABASE_SECRET_KEY")).toBe(true);
     expect(isSensitiveEnvName("GITHUB_TOKEN")).toBe(true);
     expect(isSensitiveEnvName("CLERK_SECRET_KEY")).toBe(true);
     expect(isSensitiveEnvName("PROAGENT_MARKET_REPO")).toBe(false);
@@ -137,14 +137,12 @@ describe("env loader", () => {
     try {
       process.env.PROAGENT_MARKET_REPO = "r1";
       process.env.GITHUB_TOKEN = "t1";
-      process.env.STRIPE_SECRET_KEY = "s1";
       process.env.GITHUB_APP_CLIENT_ID = "cid1";
       process.env.CLERK_SECRET_KEY = "c1";
       const cfg = getEnvConfig();
       expect(cfg).toEqual({
         marketRepo: "r1",
         githubToken: "t1",
-        stripeSecretKey: "s1",
         githubAppClientId: "cid1",
         clerkSecretKey: "c1",
       });

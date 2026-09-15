@@ -73,7 +73,6 @@ function validate(crew: CrewDefinition): string[] {
   }
   if (crew.entryPoints.length === 0) problems.push("Pick at least one entry point.");
   else for (const ep of crew.entryPoints) if (!ids.has(ep)) problems.push(`Entry point "${ep}" is not a worker.`);
-  if (crew.pricing && (crew.pricing.currency !== "usd" || crew.pricing.amount < 0)) problems.push("Pricing must be null or {currency:'usd', amount>=0}.");
   return problems;
 }
 
@@ -124,8 +123,6 @@ export function BuilderPage(props: { ctx: AppCtx }): React.JSX.Element {
         author: crew.author || "anonymous",
         tags: crew.tags,
         kind: (crew.workers.length > 1 ? "crew" : "agent") as "crew" | "agent",
-        pricing: crew.pricing,
-        checkoutUrl: crew.checkoutUrl,
         downloads: catalog.items.find((i) => i.id === crew.id)?.downloads ?? 0,
         createdAt: catalog.items.find((i) => i.id === crew.id)?.createdAt ?? crew.createdAt,
         updatedAt: crew.updatedAt,
@@ -173,7 +170,7 @@ export function BuilderPage(props: { ctx: AppCtx }): React.JSX.Element {
       {tab === "workers" && <WorkersTab crew={crew} update={update} updateWorker={updateWorker} />}
       {tab === "mcp" && <McpTab crew={crew} update={update} />}
       {tab === "graph" && <GraphTab crew={crew} update={update} />}
-      {tab === "ship" && <ShipTab crew={crew} update={update} problems={problems} publish={publish} publishState={publishState} exportJson={exportJson} navigate={navigate} />}
+      {tab === "ship" && <ShipTab problems={problems} publish={publish} publishState={publishState} exportJson={exportJson} navigate={navigate} />}
     </div>
   );
 }
@@ -417,45 +414,26 @@ function GraphTab(props: { crew: CrewDefinition; update: (p: Partial<CrewDefinit
 }
 
 function ShipTab(props: {
-  crew: CrewDefinition;
-  update: (p: Partial<CrewDefinition>) => void;
   problems: string[] | null;
   publish: () => void;
   publishState: string;
   exportJson: () => void;
   navigate: (to: string) => void;
 }): React.JSX.Element {
-  const { crew, update, problems, publish, publishState, exportJson, navigate } = props;
+  const { problems, publish, publishState, exportJson, navigate } = props;
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <Card>
-        <label style={label}>Pricing</label>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ fontSize: 13 }}>
-            <input type="radio" checked={crew.pricing === null} onChange={() => update({ pricing: null })} /> Free
-          </label>
-          <label style={{ fontSize: 13 }}>
-            <input type="radio" checked={crew.pricing !== null} onChange={() => update({ pricing: { currency: "usd", amount: 1900 } })} /> Paid (USD cents)
-          </label>
-          {crew.pricing && (
-            <input
-              style={{ ...field, width: 120 }}
-              type="number"
-              min={0}
-              value={crew.pricing.amount}
-              onChange={(e) => update({ pricing: { currency: "usd", amount: Number(e.target.value) } })}
-            />
-          )}
+        <label style={label}>License</label>
+        <p style={{ color: "var(--cream-dim)", fontSize: 13, lineHeight: 1.6, margin: "4px 0 10px" }}>
+          Everything in the marketplace is <strong style={{ color: "var(--lime)" }}>free and MIT-licensed</strong> —
+          publishing a listing shares it with everyone. If your crew helps people, consider a
+          donation link in the description instead of a price tag.
+        </p>
+        <div style={{ display: "flex", gap: 14, fontSize: 13 }}>
+          <a href="https://github.com/sponsors/EnzoVezzaro" target="_blank" rel="noreferrer" style={{ color: "var(--lime)" }}>♥ Become a sponsor</a>
+          <a href="https://ko-fi.com/enzojuniorvezzaro" target="_blank" rel="noreferrer" style={{ color: "var(--lime)" }}>☕ Buy me a coffee</a>
         </div>
-        {crew.pricing && (
-          <>
-            <label style={label}>Stripe Payment Link URL (mint once with your sandbox key, then paste)</label>
-            <input style={field} value={crew.checkoutUrl ?? ""} onChange={(e) => update({ checkoutUrl: e.target.value })} placeholder="https://buy.stripe.com/test_…" />
-            <p style={{ color: "var(--cream-dim)", fontSize: 12, marginTop: 6 }}>
-              Static hosting can't hold a Stripe secret key. Create a Payment Link once (dashboard or CLI) and store only its URL here — checkout happens on Stripe's domain.
-            </p>
-          </>
-        )}
       </Card>
 
       {problems && problems.length > 0 && (

@@ -112,10 +112,6 @@ export interface CrewDefinition {
   handoffs: CrewHandoff[];
   /** Entry point worker(s) — where work starts. */
   entryPoints: string[];
-  /** Pricing: null = free. */
-  pricing: { currency: "usd"; amount: number } | null;
-  /** Stripe Payment Link URL for paid crews (static-hosting checkout). */
-  checkoutUrl?: string;
   /** ISO date. */
   createdAt: string;
   updatedAt: string;
@@ -141,8 +137,6 @@ export interface MarketplaceItem {
   author: string;
   tags: string[];
   kind: "crew" | "agent";
-  pricing: { currency: "usd"; amount: number } | null;
-  checkoutUrl?: string;
   downloads: number;
   createdAt: string;
   updatedAt: string;

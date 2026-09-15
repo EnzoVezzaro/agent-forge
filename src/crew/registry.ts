@@ -162,8 +162,6 @@ export async function publishCrew(crew: CrewDefinition, target: GitHubCommitTarg
     author: crew.author,
     tags: crew.tags,
     kind: crew.workers.length > 1 ? "crew" : "agent",
-    pricing: crew.pricing,
-    checkoutUrl: crew.checkoutUrl,
     downloads: catalog.items.find((i) => i.id === crew.id)?.downloads ?? 0,
     createdAt: catalog.items.find((i) => i.id === crew.id)?.createdAt ?? crew.createdAt,
     updatedAt: crew.updatedAt,

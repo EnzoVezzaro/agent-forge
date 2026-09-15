@@ -4,7 +4,13 @@
   "version": "1.0.0",
   "description": "Three-worker incident response crew: triage the signal, draft stakeholder comms, execute approval-gated mitigation. Reads your repo's runbooks and incident history for context.",
   "author": "proagents",
-  "tags": ["incident-response", "sre", "on-call", "comms", "multi-agent"],
+  "tags": [
+    "incident-response",
+    "sre",
+    "on-call",
+    "comms",
+    "multi-agent"
+  ],
   "workers": [
     {
       "id": "triage",
@@ -16,17 +22,31 @@
         "write": "none",
         "production": "read",
         "secrets": "none",
-        "tools": ["log_search", "read_file", "git_log"],
+        "tools": [
+          "log_search",
+          "read_file",
+          "git_log"
+        ],
         "approvalGates": []
       },
-      "mcpServers": ["github"],
+      "mcpServers": [
+        "github"
+      ],
       "context": [
-        { "framework": "filesystem", "scope": "docs/runbooks/**" },
-        { "framework": "git", "scope": "recent commits touching incident area" }
+        {
+          "framework": "filesystem",
+          "scope": "docs/runbooks/**"
+        },
+        {
+          "framework": "git",
+          "scope": "recent commits touching incident area"
+        }
       ],
       "instructions": "1. Reproduce the failure signal from logs and recent commits.\n2. Quote evidence for every claim — file, line, commit sha.\n3. Rate severity per the runbook matrix; if no runbook exists, say so explicitly.\n4. Emit triage-summary.md. Never propose fixes in this phase.",
       "receivesFrom": [],
-      "emits": ["triage-summary.md"]
+      "emits": [
+        "triage-summary.md"
+      ]
     },
     {
       "id": "comms",
@@ -38,16 +58,27 @@
         "write": "scoped",
         "production": "none",
         "secrets": "none",
-        "tools": ["read_file", "write_file"],
+        "tools": [
+          "read_file",
+          "write_file"
+        ],
         "approvalGates": []
       },
       "mcpServers": [],
       "context": [
-        { "framework": "filesystem", "scope": "docs/comms-templates/**" }
+        {
+          "framework": "filesystem",
+          "scope": "docs/comms-templates/**"
+        }
       ],
       "instructions": "1. Read triage-summary.md only — do not re-investigate.\n2. Draft status-update.md (customer-safe) and exec-brief.md (internal).\n3. No speculation: every statement traces to the triage summary.\n4. Flag anything you could not verify as [UNVERIFIED].",
-      "receivesFrom": ["triage"],
-      "emits": ["status-update.md", "exec-brief.md"]
+      "receivesFrom": [
+        "triage"
+      ],
+      "emits": [
+        "status-update.md",
+        "exec-brief.md"
+      ]
     },
     {
       "id": "remediation",
@@ -59,16 +90,34 @@
         "write": "scoped",
         "production": "write",
         "secrets": "named",
-        "tools": ["read_file", "write_file", "restart_service", "runbook_exec"],
-        "approvalGates": ["restart_service", "runbook_exec"]
+        "tools": [
+          "read_file",
+          "write_file",
+          "restart_service",
+          "runbook_exec"
+        ],
+        "approvalGates": [
+          "restart_service",
+          "runbook_exec"
+        ]
       },
-      "mcpServers": ["github"],
+      "mcpServers": [
+        "github"
+      ],
       "context": [
-        { "framework": "filesystem", "scope": "docs/runbooks/**" }
+        {
+          "framework": "filesystem",
+          "scope": "docs/runbooks/**"
+        }
       ],
       "instructions": "1. Read triage-summary.md and the matching runbook section.\n2. Propose the least-invasive mitigation; state rollback for each step.\n3. Production actions ONLY after a granted approval event naming the tool.\n4. Emit mitigation-plan.md before acting; mitigation-log.md after.",
-      "receivesFrom": ["triage"],
-      "emits": ["mitigation-plan.md", "mitigation-log.md"]
+      "receivesFrom": [
+        "triage"
+      ],
+      "emits": [
+        "mitigation-plan.md",
+        "mitigation-log.md"
+      ]
     }
   ],
   "mcpServers": [
@@ -76,15 +125,29 @@
       "name": "github",
       "transport": "http",
       "url": "https://api.githubcopilot.com/mcp/",
-      "allowedTools": ["get_file_contents", "list_commits", "search_code", "create_pull_request"]
+      "allowedTools": [
+        "get_file_contents",
+        "list_commits",
+        "search_code",
+        "create_pull_request"
+      ]
     }
   ],
   "handoffs": [
-    { "from": "triage", "to": "comms", "artifact": "triage-summary.md" },
-    { "from": "triage", "to": "remediation", "artifact": "triage-summary.md" }
+    {
+      "from": "triage",
+      "to": "comms",
+      "artifact": "triage-summary.md"
+    },
+    {
+      "from": "triage",
+      "to": "remediation",
+      "artifact": "triage-summary.md"
+    }
   ],
-  "entryPoints": ["triage"],
-  "pricing": null,
+  "entryPoints": [
+    "triage"
+  ],
   "createdAt": "2026-09-15T00:00:00.000Z",
   "updatedAt": "2026-09-15T00:00:00.000Z"
 }

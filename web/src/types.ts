@@ -55,8 +55,6 @@ export interface CrewDefinition {
   mcpServers: CrewMcpServer[];
   handoffs: CrewHandoff[];
   entryPoints: string[];
-  pricing: { currency: "usd"; amount: number } | null;
-  checkoutUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,8 +67,6 @@ export interface MarketplaceItem {
   author: string;
   tags: string[];
   kind: "crew" | "agent";
-  pricing: { currency: "usd"; amount: number } | null;
-  checkoutUrl?: string;
   downloads: number;
   createdAt: string;
   updatedAt: string;
@@ -81,8 +77,6 @@ export interface MarketplaceCatalog {
   updatedAt: string;
   items: MarketplaceItem[];
 }
-
-export const FREE: { currency: "usd"; amount: number } | null = null;
 
 export function emptyCrew(author: string): CrewDefinition {
   const now = new Date().toISOString();
@@ -97,7 +91,6 @@ export function emptyCrew(author: string): CrewDefinition {
     mcpServers: [],
     handoffs: [],
     entryPoints: [],
-    pricing: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -105,9 +98,4 @@ export function emptyCrew(author: string): CrewDefinition {
 
 export function slugify(text: string): string {
   return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
-}
-
-export function formatPrice(pricing: { currency: string; amount: number } | null): string {
-  if (!pricing) return "Free";
-  return `$${(pricing.amount / 100).toFixed(2)}`;
 }

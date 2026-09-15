@@ -198,7 +198,8 @@ browser on GitHub Pages:
 - **Preview an agent on your repo** — sign in with GitHub (device flow, no secret), pick a
   repo, run any crew on the fly with your own provider/model, then install it into the repo
   via the GitHub API
-- **Buy** — Stripe Payment Links (the static site never touches a secret key)
+- **Fully free & open source** — every listing is MIT-licensed; support the project via
+  [GitHub Sponsors](https://github.com/sponsors/EnzoVezzaro) or [Ko-fi](https://ko-fi.com/enzojuniorvezzaro)
 
 ```bash
 proagent crew list            # browse the catalog

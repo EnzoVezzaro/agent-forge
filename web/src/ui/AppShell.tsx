@@ -99,6 +99,14 @@ export function AppShell(props: { route: string; navigate: (to: string) => void 
           {nav("builder", "Build a crew")}
         </nav>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
+          <a
+            href="https://github.com/sponsors/EnzoVezzaro"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--cream)", textDecoration: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 12px", fontSize: 13 }}
+          >
+            ♥ <span style={{ color: "var(--lime)", fontWeight: 700 }}>Donate</span>
+          </a>
           <GitHubAuth user={user} />
           <button
             onClick={openSettings}
@@ -118,10 +126,12 @@ export function AppShell(props: { route: string; navigate: (to: string) => void 
       </header>
       <main style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 20px 80px" }}>{page}</main>
       <footer style={{ borderTop: "1px solid var(--line)", padding: "18px 28px", color: "var(--cream-dim)", fontSize: 12, textAlign: "center" }}>
-        ProAgents Marketplace · runs entirely in your browser on GitHub Pages ·{" "}
+        ProAgents Marketplace · fully open source (MIT) · runs entirely in your browser on GitHub Pages ·{" "}
         <a href="https://github.com/EnzoVezzaro/proagents" style={{ color: "var(--lime)" }}>
-          open source
-        </a>
+          source
+        </a>{" "}·{" "}
+        <a href="https://github.com/sponsors/EnzoVezzaro" style={{ color: "var(--lime)" }}>♥ Sponsor</a>{" "}·{" "}
+        <a href="https://ko-fi.com/enzojuniorvezzaro" style={{ color: "var(--lime)" }}>☕ Ko-fi</a>
       </footer>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>

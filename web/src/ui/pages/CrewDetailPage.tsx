@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { AppCtx } from "../AppShell.js";
 import { ErrorNote } from "../cards.js";
-import { formatPrice, type CrewDefinition, type MarketplaceCatalog, type MarketplaceItem } from "../../types.js";
+import type { CrewDefinition } from "../../types.js";
 
 function itemUrl(id: string): string {
   return new URL(`../../../.marketplace/items/${id}.json`, window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/items/") + `${id}.json`;
@@ -10,7 +10,6 @@ function itemUrl(id: string): string {
 export function CrewDetailPage(props: { id: string; ctx: AppCtx }): React.JSX.Element {
   const { id } = props;
   const [crew, setCrew] = useState<CrewDefinition | null>(null);
-  const [item, setItem] = useState<MarketplaceItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,12 +25,6 @@ export function CrewDetailPage(props: { id: string; ctx: AppCtx }): React.JSX.El
       .catch((err) => {
         if (!cancelled) setError(`Could not load "${id}" (${(err as Error).message}).`);
       });
-    fetch(new URL("../../../.marketplace/catalog.json", window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/catalog.json"))
-      .then((r) => r.json() as Promise<MarketplaceCatalog>)
-      .then((catalog) => {
-        if (!cancelled) setItem(catalog.items.find((i) => i.id === id) ?? null);
-      })
-      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -49,8 +42,6 @@ export function CrewDetailPage(props: { id: string; ctx: AppCtx }): React.JSX.El
   }
   if (!crew) return <p style={{ color: "var(--cream-dim)" }}>Loading…</p>;
 
-  const price = formatPrice(item?.pricing ?? crew.pricing);
-
   return (
     <div>
       <a href="#/catalog" style={{ color: "var(--lime)", fontSize: 13 }}>← back to catalog</a>
@@ -66,17 +57,21 @@ export function CrewDetailPage(props: { id: string; ctx: AppCtx }): React.JSX.El
           </div>
         </div>
         <div style={{ background: "var(--ink-2)", border: "1px solid var(--line)", borderRadius: 14, padding: 20, minWidth: 240 }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: crew.pricing ? "var(--cream)" : "var(--lime)" }}>{price}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "var(--lime)" }}>Free · MIT</div>
           <div style={{ color: "var(--cream-dim)", fontSize: 12, marginBottom: 14 }}>v{crew.version} · by {crew.author} · {crew.workers.length} worker{crew.workers.length === 1 ? "" : "s"}</div>
-          {crew.pricing && crew.checkoutUrl ? (
-            <a href={crew.checkoutUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center", background: "#635bff", color: "#fff", borderRadius: 10, padding: "11px 0", fontWeight: 700, textDecoration: "none", fontSize: 14 }}>
-              Buy with Stripe
-            </a>
-          ) : (
-            <div style={{ textAlign: "center", color: "var(--lime)", fontWeight: 700, fontSize: 13, padding: "6px 0" }}>Free · install directly</div>
-          )}
-          <a href={`#/preview/${encodeURIComponent(crew.id)}`} style={{ display: "block", textAlign: "center", marginTop: 10, border: "1px solid var(--line)", color: "var(--cream)", borderRadius: 10, padding: "10px 0", textDecoration: "none", fontSize: 13 }}>
+          <a
+            href={`#/preview/${encodeURIComponent(crew.id)}`}
+            style={{ display: "block", textAlign: "center", background: "var(--lime)", color: "var(--ink)", borderRadius: 10, padding: "11px 0", fontWeight: 700, textDecoration: "none", fontSize: 14 }}
+          >
             Preview on your repo
+          </a>
+          <a
+            href="https://github.com/sponsors/EnzoVezzaro"
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "block", textAlign: "center", marginTop: 10, border: "1px solid var(--line)", color: "var(--cream)", borderRadius: 10, padding: "10px 0", textDecoration: "none", fontSize: 13 }}
+          >
+            ♥ Support the project
           </a>
         </div>
       </div>

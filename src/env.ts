@@ -5,10 +5,11 @@ import path from "node:path";
 /**
  * Minimal, dependency-free .env loader for the ProAgents CLI.
  *
- * Convention (mirrors .env.example):
+ * Convention (mirrors .env.example) — the project is fully open source, so
+ * only identity/publishing credentials live here; there are no payment
+ * secrets (donations run through GitHub Sponsors / Ko-fi links):
  *   - `PROAGENT_MARKET_REPO`  → marketplace catalog repository
  *   - `GITHUB_TOKEN`          → contents:write token for publishing
- *   - `STRIPE_SECRET_KEY`     → local Payment-Link minting (`crew checkout`)
  *   - `GITHUB_APP_CLIENT_ID`  → device-flow client id (public)
  *   - `CLERK_SECRET_KEY`      → server-only; never read by web code
  *
@@ -19,7 +20,6 @@ import path from "node:path";
 export interface EnvConfig {
   marketRepo?: string;
   githubToken?: string;
-  stripeSecretKey?: string;
   githubAppClientId?: string;
   clerkSecretKey?: string;
 }
@@ -29,8 +29,6 @@ const KNOWN_KEYS = [
   "PROAGENT_MARKET_REPO",
   "GITHUB_TOKEN",
   "GH_TOKEN",
-  "STRIPE_SECRET_KEY",
-  "STRIPE_PUBLISHABLE_KEY",
   "GITHUB_APP_CLIENT_ID",
   "CLERK_SECRET_KEY",
   "VITE_GITHUB_APP_CLIENT_ID",
@@ -123,7 +121,6 @@ export function getEnvConfig(): EnvConfig {
   return {
     marketRepo: process.env.PROAGENT_MARKET_REPO || process.env.VITE_MARKET_REPO || undefined,
     githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || undefined,
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY || undefined,
     githubAppClientId: process.env.GITHUB_APP_CLIENT_ID || process.env.VITE_GITHUB_APP_CLIENT_ID || undefined,
     clerkSecretKey: process.env.CLERK_SECRET_KEY || undefined,
   };

@@ -47,8 +47,8 @@ proagent crew install <id> --repo owner/name --ref dev   # another catalog
 
 ### Catalog & detail
 Browse crews and single agents, filter by tag, open one to see the full worker table with
-**permission badges** (write/production/secrets/approval gates/MCP). Paid items open
-**Stripe Checkout** (sandbox Payment Links); free items install directly.
+**permission badges** (write/production/secrets/approval gates/MCP). Everything is free
+and MIT-licensed — every item installs directly.
 
 ### Build your crew (the main event)
 `Dashboard → Build your crew` is the GUI counterpart of the CLI interview, agentic-first:
@@ -60,7 +60,7 @@ Browse crews and single agents, filter by tag, open one to see the full worker t
 3. **MCP** — servers (stdio/http/sse) with per-server tool allowlists
 4. **Handoffs** — entry points and the artifact-passing graph (must stay acyclic — that's
    what makes a crew installable and runnable)
-5. **Ship** — free or paid (Stripe Payment Link), then **publish** or **export JSON**
+5. **Ship** — confirm the MIT license, then **publish** or **export JSON**
 
 Publishing commits two files to the open catalog repo (`items/<id>.json` + a catalog-index
 update) with your GitHub token — Git history is the audit log. The exported JSON is exactly
@@ -89,23 +89,18 @@ for input-limited clients and, importantly for a static site, requiring **no cli
 secret**. Press *Sign in with GitHub*, enter the one-time code at
 `github.com/login/device`, done. The token stays in your browser.
 
-## Payments
+## Donations
 
-Paid crews use **Stripe Payment Links**: the seller mints a link once (dashboard or CLI)
-and stores only its URL in the crew definition — static hosting never touches a Stripe
-secret key, and checkout happens on Stripe's domain. The seed catalog's paid crew uses a
-sandbox test link; live mode is a URL swap.
+ProAgents is **fully open source** — there is nothing to buy. Every crew and agent in the
+marketplace is free and MIT-licensed, and the project itself has no paid tier. If the tool
+saves you time, support development through the donation channels:
 
-Mint one locally with the CLI (reads `STRIPE_SECRET_KEY` from the environment or `.env`):
+- **GitHub Sponsors** — <https://github.com/sponsors/EnzoVezzaro> (the ♥ Donate button in
+  the marketplace header and the Sponsor button on the repo)
+- **Ko-fi** — <https://ko-fi.com/enzojuniorvezzaro>
 
-```bash
-proagent crew checkout pr-review-gate
-# ✓ Payment link for pr-review-gate ($19.00):
-#   https://buy.stripe.com/test_…
-```
-
-Commit the URL as the crew's `checkoutUrl`. The secret key never leaves the machine —
-the deployed SPA only ever opens committed links.
+Both are wired into `.github/FUNDING.yml`, the README, the docs footer and the marketplace
+app. There are no payment processors in the codebase: no Stripe, no keys, no checkout.
 
 ## Environment & secrets (.env)
 
@@ -120,7 +115,6 @@ cp .env.example .env
 |---|---|---|
 | `PROAGENT_MARKET_REPO` | CLI, SPA build | Catalog repo (default `EnzoVezzaro/proagents`) |
 | `GITHUB_TOKEN` | CLI | `contents:write` token for `crew publish` / browser-less install |
-| `STRIPE_SECRET_KEY` | CLI only | Mints payment links; **never** embedded in the web bundle |
 | `CLERK_SECRET_KEY` | server only | ⚠️ `sk_…` — never prefix with `VITE_` |
 | `VITE_*` | SPA build | Public values only (`VITE_GITHUB_APP_CLIENT_ID`, `VITE_MARKET_REPO`, `VITE_CLERK_PUBLISHABLE_KEY`) |
 

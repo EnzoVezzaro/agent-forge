@@ -1,5 +1,5 @@
 import React from "react";
-import { formatPrice, type MarketplaceItem } from "../types.js";
+import type { MarketplaceItem } from "../types.js";
 
 export function ItemCard(props: { item: MarketplaceItem }): React.JSX.Element {
   const { item } = props;
@@ -23,7 +23,7 @@ export function ItemCard(props: { item: MarketplaceItem }): React.JSX.Element {
         <span style={{ fontSize: 11, letterSpacing: 1.2, color: item.kind === "crew" ? "var(--lime)" : "var(--cream-dim)", textTransform: "uppercase" as const, fontWeight: 700 }}>
           {item.kind}
         </span>
-        <span style={{ fontWeight: 700, color: item.pricing ? "var(--cream)" : "var(--lime)", fontSize: 14 }}>{formatPrice(item.pricing)}</span>
+        <span style={{ fontWeight: 700, color: "var(--lime)", fontSize: 13 }}>Free · MIT</span>
       </div>
       <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>{item.name}</h3>
       <p style={{ margin: 0, color: "var(--cream-dim)", fontSize: 13, lineHeight: 1.5, minHeight: 40 }}>{item.description}</p>

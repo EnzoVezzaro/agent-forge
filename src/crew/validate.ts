@@ -47,13 +47,6 @@ export function crewProblems(crew: CrewDefinition): string[] {
   if (!crew.author || typeof crew.author !== "string") problems.push("crew.author is required");
   if (!Array.isArray(crew.tags)) problems.push("crew.tags must be an array");
 
-  // Pricing: null (free) or { currency: usd, amount >= 0 }.
-  if (crew.pricing !== null && crew.pricing !== undefined) {
-    if (typeof crew.pricing !== "object" || crew.pricing.currency !== "usd" || typeof crew.pricing.amount !== "number" || crew.pricing.amount < 0) {
-      problems.push('crew.pricing must be null or { currency: "usd", amount: number >= 0 }');
-    }
-  }
-
   // Workers.
   if (!Array.isArray(crew.workers) || crew.workers.length === 0) {
     problems.push("crew.workers must be a non-empty array");

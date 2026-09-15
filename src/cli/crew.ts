@@ -46,8 +46,6 @@ export async function runCrewCommand(args: string[], flags: Record<string, strin
       return crewInstall(rest[0], flags, json);
     case "publish":
       return crewPublish(rest[0], flags, json);
-    case "checkout":
-      return crewCheckout(rest[0], flags, json);
     case undefined:
     case "help":
       printCrewHelp();
@@ -76,9 +74,6 @@ Subcommands:
     --dry-run               Show the install plan without writing
   publish <file.json>       Publish a crew definition to the marketplace catalog
     --repo / --ref / --token (required token with contents:write)
-  checkout <id|file.json>   Mint a Stripe Payment Link for a paid crew (local only)
-    --amount <cents>        Override the crew's price in cents
-    Uses STRIPE_SECRET_KEY from the environment or .env (never shipped to web)
 
 The one-liner: install a crew and everything it needs into the repo you run:
 
@@ -116,8 +111,7 @@ async function crewList(flags: Record<string, string | boolean>, json: boolean):
   }
   console.log(`Marketplace crews (${repo}@${ref}):`);
   for (const item of catalog.items) {
-    const price = item.pricing ? `$${(item.pricing.amount / 100).toFixed(2)}` : "free";
-    console.log(`  • ${item.id.padEnd(34)} ${item.kind.padEnd(5)} v${item.version.padEnd(8)} ${price.padEnd(6)} ${item.description.slice(0, 48)}`);
+    console.log(`  • ${item.id.padEnd(34)} ${item.kind.padEnd(5)} v${item.version.padEnd(8)} ${item.description.slice(0, 54)}`);
   }
 }
 
@@ -205,55 +199,4 @@ async function crewPublish(file: string | undefined, flags: Record<string, strin
   console.log(`  + ${paths.itemPath}`);
   console.log(`  ~ ${paths.catalogPath}`);
   console.log("  (GitHub Pages serves the catalog after the next Pages build)");
-}
-
-/**
- * Mint a Stripe Payment Link for a paid crew, entirely locally: the secret key
- * never leaves this process (env/.env), and only the resulting checkout URL is
- * ever committed to the catalog. Free crews have nothing to mint.
- */
-async function crewCheckout(idOrFile: string | undefined, flags: Record<string, string | boolean>, json: boolean): Promise<void> {
-  if (!idOrFile) fail("Usage: proagent crew checkout <id|file.json>");
-  const crew = await resolveCrew(idOrFile, flags);
-  const problems = crewProblems(crew);
-  if (problems.length > 0) fail(`crew failed validation: ${problems.join("; ")}`);
-
-  const amount =
-    (typeof flags.amount === "string" && Number(flags.amount)) ||
-    crew.pricing?.amount;
-  if (!amount || amount <= 0) {
-    if (json) return jsonOut({ status: "ok", crew: crew.id, pricing: "free", checkoutUrl: null });
-    console.log(`Crew "${crew.id}" is free — no checkout needed.`);
-    return;
-  }
-
-  const secret = getEnvConfig().stripeSecretKey;
-  if (!secret) fail("crew checkout requires STRIPE_SECRET_KEY (environment or .env) — never embed it in the web app");
-
-  const body = new URLSearchParams({
-    "line_items[0][price_data][currency]": crew.pricing?.currency ?? "usd",
-    "line_items[0][price_data][unit_amount]": String(amount),
-    "line_items[0][price_data][product_data][name]": `${crew.name} (ProAgents crew)`,
-    "line_items[0][quantity]": "1",
-    "metadata[crew_id]": crew.id,
-    "metadata[crew_version]": crew.version,
-  });
-  const res = await fetch("https://api.stripe.com/v1/payment_links", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${secret}`,
-      "content-type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    fail(`Stripe payment link creation failed: HTTP ${res.status} ${text.slice(0, 200)}`);
-  }
-  const link = (await res.json()) as { id: string; url: string };
-  if (json) return jsonOut({ status: "ok", crew: crew.id, amount, currency: crew.pricing?.currency ?? "usd", paymentLinkId: link.id, checkoutUrl: link.url });
-  console.log(`✓ Payment link for ${crew.id} ($${(amount / 100).toFixed(2)}):`);
-  console.log(`  ${link.url}`);
-  console.log("");
-  console.log("Commit this URL as the crew's checkoutUrl — the secret key never leaves this machine.");
 }

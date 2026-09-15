@@ -66,7 +66,7 @@ export function DashboardPage(props: { ctx: AppCtx; user: { login: string } | nu
           {mine.map((c) => (
             <a key={c.id} href={`#/item/${encodeURIComponent(c.id)}`} style={{ display: "flex", justifyContent: "space-between", background: "var(--ink-2)", border: "1px solid var(--line)", borderRadius: 12, padding: 16, textDecoration: "none", color: "var(--cream)", flexWrap: "wrap", gap: 8 }}>
               <span><strong>{c.name}</strong> <span style={{ color: "var(--cream-dim)" }}>· v{c.version} · {c.workers.length} workers</span></span>
-              <span style={{ color: "var(--lime)", fontSize: 13 }}>{c.pricing ? `$${(c.pricing.amount / 100).toFixed(2)}` : "free"}</span>
+              <span style={{ color: "var(--lime)", fontSize: 13 }}>free · MIT</span>
             </a>
           ))}
         </div>
