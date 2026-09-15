@@ -64,7 +64,8 @@
     "cli": "node ./dist/cli/index.js",
     "docs:dev": "bun --bun vitepress dev docs",
     "docs:build": "bun --bun vitepress build docs",
-    "docs:preview": "bun --bun vitepress preview docs"
+    "docs:preview": "bun --bun vitepress preview docs",
+    "gh:token": "node scripts/github-device-token.mjs"
   },
   "dependencies": {
     "yaml": "^2.6.0"
