@@ -6,10 +6,10 @@ import { buildPreviewPrompt, installFilesBrowser, mcpJsonBrowser } from "../../p
 import { getRepoFile, listRepoTree, listUserRepos, putRepoFile, type RepoInfo } from "../../github.js";
 import type { CrewDefinition, MarketplaceCatalog } from "../../types.js";
 
-const CATALOG_URL = new URL("../../../.marketplace/catalog.json", window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/catalog.json");
+import { CATALOG_URL, catalogUrl } from "../../catalog.js";
 
 function itemUrl(id: string): string {
-  return new URL(`../../../.marketplace/items/${id}.json`, window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/items/") + `${id}.json`;
+  return catalogUrl(`items/${id}.json`);
 }
 
 /**

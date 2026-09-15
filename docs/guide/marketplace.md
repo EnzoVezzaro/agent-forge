@@ -50,21 +50,39 @@ Browse crews and single agents, filter by tag, open one to see the full worker t
 **permission badges** (write/production/secrets/approval gates/MCP). Everything is free
 and MIT-licensed — every item installs directly.
 
-### Build your crew (the main event)
-`Dashboard → Build your crew` is the GUI counterpart of the CLI interview, agentic-first:
+### Build a crew (the main event)
+`Build a crew` opens a two-path entry — both end in the same builder and the same output:
 
-1. **Identity** — name, slug, version, description, tags
-2. **Workers** — per worker: role, permission model (read/write/production/secrets), tool
-   allowlist, approval gates, MCP bindings, context scopes, upstream dependencies, emitted
-   artifacts, and the instruction body that becomes its `SKILL.md`
-3. **MCP** — servers (stdio/http/sse) with per-server tool allowlists
-4. **Handoffs** — entry points and the artifact-passing graph (must stay acyclic — that's
-   what makes a crew installable and runnable)
-5. **Ship** — confirm the MIT license, then **publish** or **export JSON**
+1. **Start from your repo** — after GitHub sign-in, pick one of your repositories. ProAgents
+   analyzes its shape (languages, tests, CI, docs, migrations, IaC — a deterministic rules
+   engine, no model calls) and drafts a grounded starter crew: suggested workers with
+   reasons, context scopes from real directories, artifact-passing handoffs. Everything
+   stays editable.
+2. **Build it custom** — an empty crew, full control: name, workers with explicit
+   permission models (read/write/production/secrets + approval gates), tool allowlists, MCP
+   server bindings (stdio/http/sse), context scopes, and the handoff graph (must stay
+   acyclic — that's what makes a crew installable and runnable).
 
-Publishing commits two files to the open catalog repo (`items/<id>.json` + a catalog-index
-update) with your GitHub token — Git history is the audit log. The exported JSON is exactly
-what `proagent crew install` consumes, so a crew built in the GUI runs anywhere the CLI runs.
+Either way you end with a **CrewDefinition JSON** that:
+
+- installs locally: download it, run `proagent crew build ./crew.json --file <id>.json` in
+  any repo (skills, agent contracts, merged `.mcp.json`), or
+- publishes to the marketplace by **filing a proposal issue** (next section).
+
+### Publishing = a proposal issue, not a direct commit
+Marketplace submissions are GitHub issues, gated by CI:
+
+1. **File the proposal** — the builder's *Ship* tab (or `proagent crew submit crew.json`)
+   opens an issue with the full crew JSON in a parseable block.
+2. **CI validates instantly** — the `Crew proposal pipeline` workflow extracts the JSON and
+   runs the same deterministic validator the CLI uses, commenting ✅ or ❌ with exact
+   problems. Editing the issue re-runs the check.
+3. **A maintainer merges it** — commenting `/publish` on a green proposal commits it to the
+   catalog (`items/<id>.json` + index update); `/close <reason>` rejects. Nothing goes live
+   without that human review.
+
+The issue form (`.github/ISSUE_TEMPLATE/crew-proposal.yml`) also works by hand: paste a
+crew JSON block into a new *🧩 Crew proposal* issue and CI takes it from there.
 
 ### Preview an agent on your repo
 `Dashboard → Preview on a repo`: sign in with GitHub (device flow — see below), pick one of
@@ -125,15 +143,17 @@ CLI). Project files always outrank the global one, and CI secrets beat everythin
 
 ## Adding a listing to the catalog
 
-Either publish from the GUI, or by hand/CLI:
+The recommended path (used by the builder's *Ship* tab too):
 
 ```bash
 proagent crew validate my-crew.json       # must pass
-proagent crew publish my-crew.json --token gh_token_with_contents_write
+proagent crew submit my-crew.json         # files the proposal issue; CI validates it
 ```
 
-Both write `items/<id>.json` and update `catalog.json` as commits. The next Pages build
-serves them.
+A maintainer then comments `/publish` on the issue, which commits `items/<id>.json` and
+updates `catalog.json` — the next Pages build serves them. Direct commits are still
+available to maintainers via `proagent crew publish` (contents:write), but proposals are
+the reviewable, auditable default.
 
 ## Known limitations
 

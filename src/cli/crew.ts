@@ -9,6 +9,12 @@ import type { GitHubCommitTarget } from "../crew/registry.js";
 import { jsonOut } from "./json.js";
 import { getEnvConfig } from "../env.js";
 
+// Proposal markers — kept in sync with web/src/proposal.ts and
+// .github/workflows/crew-submission.yml (single source of truth is the SPA
+// module; CLI duplicates them only to stay dependency-free).
+const JSON_BEGIN = "<!-- CREW-JSON-BEGIN -->";
+const JSON_END = "<!-- CREW-JSON-END -->";
+
 function fail(message: string): never {
   console.error(`error: ${message}`);
   process.exit(1);
@@ -46,6 +52,8 @@ export async function runCrewCommand(args: string[], flags: Record<string, strin
       return crewInstall(rest[0], flags, json);
     case "publish":
       return crewPublish(rest[0], flags, json);
+    case "submit":
+      return crewSubmit(rest[0], flags, json);
     case undefined:
     case "help":
       printCrewHelp();
@@ -72,8 +80,11 @@ Subcommands:
   install <id>              Install a crew into the current repo
     --repo / --ref / --token
     --dry-run               Show the install plan without writing
-  publish <file.json>       Publish a crew definition to the marketplace catalog
+  publish <file.json>       Commit a crew definition directly to the catalog
     --repo / --ref / --token (required token with contents:write)
+  submit <file.json>        File a marketplace proposal issue (recommended)
+    --repo owner/name       Target repo (default: the marketplace repo)
+    --token <gh-token>      Or GITHUB_TOKEN; needs issues:write
 
 The one-liner: install a crew and everything it needs into the repo you run:
 
@@ -199,4 +210,74 @@ async function crewPublish(file: string | undefined, flags: Record<string, strin
   console.log(`  + ${paths.itemPath}`);
   console.log(`  ~ ${paths.catalogPath}`);
   console.log("  (GitHub Pages serves the catalog after the next Pages build)");
+}
+
+/**
+ * Submit a crew to the marketplace by filing a proposal issue. CI validates
+ * it instantly; a maintainer `/publish` commits it to the catalog. This is
+ * the recommended path — direct `publish` bypasses review.
+ */
+async function crewSubmit(file: string | undefined, flags: Record<string, string | boolean>, json: boolean): Promise<void> {
+  if (!file) fail("Usage: proagent crew submit <file.json>");
+  let crew: CrewDefinition;
+  try {
+    crew = JSON.parse(await fs.readFile(file, "utf8")) as CrewDefinition;
+  } catch (err) {
+    fail(`cannot read crew file: ${(err as Error).message}`);
+  }
+  const problems = crewProblems(crew);
+  if (problems.length > 0) fail(`refusing to submit an invalid crew: ${problems.join("; ")}`);
+
+  const env = getEnvConfig();
+  const repo = (typeof flags.repo === "string" && flags.repo) || (env.marketRepo ?? DEFAULT_REPO);
+  const token = (typeof flags.token === "string" && flags.token) || env.githubToken;
+  if (!token) fail("submit requires a GitHub token (--token, GITHUB_TOKEN, or .env) with issues:write");
+
+  const workerLines = crew.workers.map(
+    (w) => `- **${w.name}** (\`${w.id}\`, ${w.role}) — reads: ${w.receivesFrom.join(", ") || "—"} → emits: ${w.emits.join(", ") || "—"} · write: ${w.permissions.write} · prod: ${w.permissions.production} · secrets: ${w.permissions.secrets}`,
+  );
+  const body = [
+    `## Marketplace proposal: ${crew.name}`,
+    "",
+    crew.description,
+    "",
+    "### Worker summary",
+    "",
+    ...workerLines,
+    "",
+    "### Crew JSON",
+    "",
+    JSON_BEGIN,
+    "```json",
+    JSON.stringify(crew, null, 2),
+    "```",
+    JSON_END,
+    "",
+    "---",
+    "",
+    "Maintainers: CI validates this proposal automatically. If the check is green and the design is sound, comment `/publish` to commit it to the marketplace catalog.",
+  ].join("\n");
+
+  const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      accept: "application/vnd.github+json",
+      "content-type": "application/json",
+      "user-agent": "proagent-cli",
+    },
+    body: JSON.stringify({
+      title: `[crew-proposal] ${crew.id} v${crew.version}`,
+      body,
+      labels: ["crew-proposal"],
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    fail(`issue creation failed: HTTP ${res.status} ${text.slice(0, 200)}`);
+  }
+  const issue = (await res.json()) as { number: number; html_url: string };
+  if (json) return jsonOut({ status: "ok", crewId: crew.id, version: crew.version, repo, issue: issue.number, url: issue.html_url });
+  console.log(`✓ Proposal filed: ${issue.html_url}`);
+  console.log("  CI validates it within seconds; a maintainer /publish commits it to the marketplace.");
 }

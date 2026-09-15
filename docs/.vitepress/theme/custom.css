@@ -3,20 +3,92 @@
  *   ink    #000000 / #0a0a0a   (74% of the logo is near-black)
  *   cream  #f1eeea            (line-art strokes)
  *   lime   #b9fb1d            (accent sparks)
+ *
+ * Two full variants:
+ *   :root  → light mode (paper surfaces, ink text, lime accent)
+ *   .dark  → the brand's native ink-and-lime forge
+ * VitePress toggles `html.dark` from the navbar switch + system preference.
  */
 
+/* ---------------------------------------------------------------------------
+ * Shared brand tokens (both modes)
+ * ------------------------------------------------------------------------- */
 :root {
   --vp-c-lime: #b9fb1d;
   --vp-c-lime-soft: rgba(185, 251, 29, 0.14);
+  --vp-c-lime-deep: #7aa80e; /* lime that stays readable on white */
+
+  --vp-c-brand-1: var(--vp-c-lime-deep);
+  --vp-c-brand-2: #5f8a0a;
+  --vp-c-brand-3: #8fc713;
+  --vp-c-brand-soft: var(--vp-c-lime-soft);
+
+  --vp-font-family-base: "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --vp-font-family-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo,
+    Consolas, monospace;
+
+  --vp-button-brand-bg: var(--vp-c-lime);
+  --vp-button-brand-text: #0a0a0a;
+  --vp-button-brand-border: var(--vp-c-lime);
+  --vp-button-brand-hover-bg: #c9ff45;
+  --vp-button-brand-hover-text: #0a0a0a;
+  --vp-button-brand-hover-border: #c9ff45;
+  --vp-button-brand-active-bg: #a5e018;
+  --vp-button-brand-active-text: #0a0a0a;
+  --vp-button-brand-active-border: #a5e018;
+
+  --vp-code-lang-color: #6f6d66;
+}
+
+/* ---------------------------------------------------------------------------
+ * Light mode (default)
+ * ------------------------------------------------------------------------- */
+:root {
+  --vp-c-bg: #fcfcf9;
+  --vp-c-bg-alt: #f4f4ef;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #f4f4ef;
+
+  --vp-c-text-1: #16160f;
+  --vp-c-text-2: #4d4c44;
+  --vp-c-text-3: #6f6d66;
+
+  --vp-c-divider: #e4e3da;
+  --vp-c-gutter: #ecebe2;
+  --vp-c-border: #dedcd0;
+
+  --vp-c-text-code: #3f6212;
+  --vp-code-color: var(--vp-c-lime-soft);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    #16160f 30%,
+    var(--vp-c-lime-deep)
+  );
+
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgba(185, 251, 29, 0.35) 0%,
+    rgba(185, 251, 29, 0.08) 45%,
+    transparent 70%
+  );
+  --vp-home-hero-image-filter: blur(28px);
+}
+
+/* ---------------------------------------------------------------------------
+ * Dark mode — the logo's native palette
+ * ------------------------------------------------------------------------- */
+html.dark {
+  --vp-c-brand-1: var(--vp-c-lime);
+  --vp-c-brand-2: #d2ff66;
+  --vp-c-brand-3: #8fc713;
+
   --vp-c-ink: #050505;
   --vp-c-ink-2: #0c0c0c;
   --vp-c-cream: #f1eeea;
   --vp-c-cream-dim: #a8a69f;
-
-  --vp-c-brand-1: var(--vp-c-lime);
-  --vp-c-brand-2: #d2ff66;
-  --vp-c-brand-3: #8fc713;
-  --vp-c-brand-soft: var(--vp-c-lime-soft);
 
   --vp-c-bg: var(--vp-c-ink);
   --vp-c-bg-alt: var(--vp-c-ink-2);
@@ -29,27 +101,10 @@
 
   --vp-c-divider: #232320;
   --vp-c-gutter: #1a1a18;
-
   --vp-c-border: #2a2a26;
+
   --vp-c-text-code: #d8ff7a;
-
-  --vp-font-family-base: "Inter", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --vp-font-family-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo,
-    Consolas, monospace;
-
-  --vp-code-color: var(--vp-c-lime-soft);
   --vp-code-lang-color: var(--vp-c-cream-dim);
-
-  --vp-button-brand-bg: var(--vp-c-lime);
-  --vp-button-brand-text: #0a0a0a;
-  --vp-button-brand-border: var(--vp-c-lime);
-  --vp-button-brand-hover-bg: #c9ff45;
-  --vp-button-brand-hover-text: #0a0a0a;
-  --vp-button-brand-hover-border: #c9ff45;
-  --vp-button-brand-active-bg: #a5e018;
-  --vp-button-brand-active-text: #0a0a0a;
-  --vp-button-brand-active-border: #a5e018;
 
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(
@@ -67,7 +122,10 @@
   --vp-home-hero-image-filter: blur(28px);
 }
 
-/* Dark-forge hero glow */
+/* ---------------------------------------------------------------------------
+ * Shared decorations
+ * ------------------------------------------------------------------------- */
+
 .VPHero {
   position: relative;
 }
@@ -76,17 +134,22 @@
   letter-spacing: -0.02em;
 }
 
-/* Grid texture on the home hero, like the og-image */
+/* Grid texture on the home hero, like the og-image (mode-aware lines) */
 .VPHomeHero::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(241, 238, 234, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(241, 238, 234, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(5, 5, 5, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(5, 5, 5, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+.dark .VPHomeHero::before {
+  background-image:
+    linear-gradient(rgba(241, 238, 234, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(241, 238, 234, 0.03) 1px, transparent 1px);
 }
 
 /* Lime spark on the docs outline + sidebar active markers */
@@ -109,18 +172,16 @@
   background: rgba(217, 164, 65, 0.1);
 }
 
-/* Code blocks on ink */
+/* Code blocks: brand-tinted surface per mode */
 .vp-doc div[class*="language-"] {
-  background: #0b0b0a;
+  background: #f6f6ef;
   border: 1px solid var(--vp-c-border);
+}
+.dark .vp-doc div[class*="language-"] {
+  background: #0b0b0a;
 }
 
 /* Selection in brand lime */
 ::selection {
   background: rgba(185, 251, 29, 0.35);
-}
-
-/* Force dark-only docs (the brand is the logo's black) */
-html {
-  color-scheme: dark;
 }

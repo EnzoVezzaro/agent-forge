@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import type { AppCtx } from "../AppShell.js";
 import { ErrorNote } from "../cards.js";
 import type { CrewDefinition } from "../../types.js";
+import { catalogUrl } from "../../catalog.js";
 
 function itemUrl(id: string): string {
-  return new URL(`../../../.marketplace/items/${id}.json`, window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/items/") + `${id}.json`;
+  return catalogUrl(`items/${id}.json`);
 }
 
 export function CrewDetailPage(props: { id: string; ctx: AppCtx }): React.JSX.Element {

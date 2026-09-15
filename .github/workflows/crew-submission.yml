@@ -1,0 +1,302 @@
+name: Crew proposal pipeline
+
+# Marketplace submissions are GitHub issues, and this workflow is the gate:
+#
+#   1. VALIDATE — every crew-proposal issue (opened/edited/reopened) gets its
+#      CREW-JSON block extracted and run through the same deterministic
+#      validator the CLI and SPA use (src/crew/validate.ts). A comment
+#      reports the verdict; editing the issue re-runs the check.
+#
+#   2. PUBLISH — a maintainer with write access comments `/publish` on a green
+#      proposal; the workflow commits items/<id>.json + catalog.json to main
+#      and the next Pages build serves it. `/close <reason>` rejects.
+#
+# Security notes:
+#   - The extracted JSON is written to a temp file by the extractor itself —
+#     never interpolated into shell (no injection surface).
+#   - /publish requires write (or admin) permission on the repo.
+#   - The JSON markers are defined in web/src/proposal.ts (single source of truth).
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: write
+
+concurrency:
+  group: crew-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+env:
+  JSON_BEGIN: "<!-- CREW-JSON-BEGIN -->"
+  JSON_END: "<!-- CREW-JSON-END -->"
+
+jobs:
+  validate:
+    # Validation runs on the issue lifecycle; comment events skip to publish.
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm run build
+
+      - name: Extract crew JSON
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const { JSON_BEGIN, JSON_END } = process.env;
+            const body = context.payload.issue?.body ?? '';
+            const i = body.indexOf(JSON_BEGIN);
+            const j = body.indexOf(JSON_END);
+            if (i === -1 || j === -1 || j <= i) {
+              fs.writeFileSync('/tmp/proposal-crew.json', '');
+              core.setOutput('hasJson', 'false');
+              core.setOutput('crewId', '?');
+              core.setOutput('crewVersion', '');
+              return;
+            }
+            const fenced = body.slice(i + JSON_BEGIN.length, j).trim();
+            const m = fenced.match(/```(?:json)?\s*([\s\S]*?)```/);
+            const json = (m ? m[1] : fenced).trim();
+            fs.writeFileSync('/tmp/proposal-crew.json', json);
+            core.setOutput('hasJson', 'true');
+            let id = '?', version = '';
+            try {
+              const crew = JSON.parse(json);
+              id = String(crew.id ?? '?');
+              version = String(crew.version ?? '');
+            } catch { /* keep defaults */ }
+            core.setOutput('crewId', id);
+            core.setOutput('crewVersion', version);
+
+      - name: Validate
+        id: validate
+        if: steps.extract.outputs.hasJson == 'true'
+        run: |
+          if node --input-type=module -e "
+            import { crewProblems } from './dist/crew/validate.js';
+            import fs from 'node:fs';
+            const crew = JSON.parse(fs.readFileSync('/tmp/proposal-crew.json', 'utf8'));
+            const problems = crewProblems(crew);
+            for (const p of problems) console.error(p);
+            process.exit(problems.length === 0 ? 0 : 1);
+          " 2>/tmp/problems.txt; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "problems<<PROBLEMS_EOF" >> "$GITHUB_OUTPUT"
+            cat /tmp/problems.txt >> "$GITHUB_OUTPUT"
+            echo "PROBLEMS_EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment verdict
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasJson = '${{ steps.extract.outputs.hasJson }}' === 'true';
+            const valid = '${{ steps.validate.outputs.valid }}' === 'true';
+            const id = '${{ steps.extract.outputs.crewId }}';
+            const version = '${{ steps.extract.outputs.crewVersion }}';
+            const problems = `${{ steps.validate.outputs.problems }}`.trim();
+            const L = [];
+            if (!hasJson) {
+              L.push('❌ **No crew JSON found.** The issue body must contain a `' + process.env.JSON_BEGIN + '` … `' + process.env.JSON_END + '` block with a ```json fence.');
+              L.push('', 'The [builder](https://enzovezzaro.github.io/proagents/app/) generates this automatically.');
+            } else if (valid) {
+              L.push('✅ **`' + id + '` v' + version + ' passes the deterministic crew validator.**');
+              L.push('', 'Next step: a maintainer reviews the design (permissions, handoffs, MCP), then comments **/publish** on this issue to commit it to the marketplace catalog. Nothing goes live without that review.');
+            } else {
+              L.push('❌ **`' + id + '` failed validation**');
+              L.push('', '```', problems || 'unknown error — check the workflow log', '```');
+              L.push('', 'Edit the issue body to fix the JSON — the check re-runs automatically. The [builder](https://enzovezzaro.github.io/proagents/app/) only produces valid crews.');
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: L.join('\n'),
+            });
+
+  publish:
+    # /publish or /close (write access only) acts on a crew-proposal issue.
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.action == 'created' &&
+      !github.event.issue.pull_request &&
+      contains(github.event.issue.labels.*.name, 'crew-proposal')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm run build
+
+      - name: Check command & permission
+        id: gate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = (context.payload.comment?.body ?? '').trim();
+            const command = comment.startsWith('/publish') ? 'publish'
+              : comment.startsWith('/close') ? 'close'
+              : '';
+            core.setOutput('command', command);
+
+            let allowed = 'false';
+            if (command !== '') {
+              const perm = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.payload.comment.user.login,
+              });
+              allowed = ['admin', 'write'].includes(perm.data.permission) ? 'true' : 'false';
+            }
+            core.setOutput('allowed', allowed);
+            core.setOutput('commandName', command);
+
+      - name: "No permission → refuse politely"
+        if: steps.gate.outputs.command != '' && steps.gate.outputs.allowed == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '🚫 `/' + '${{ steps.gate.outputs.commandName }}' + '` requires write access to this repository.',
+            });
+
+      - name: Extract crew JSON
+        if: steps.gate.outputs.allowed == 'true' && steps.gate.outputs.command == 'publish'
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const { JSON_BEGIN, JSON_END } = process.env;
+            const body = context.payload.issue?.body ?? '';
+            const i = body.indexOf(JSON_BEGIN);
+            const j = body.indexOf(JSON_END);
+            if (i === -1 || j === -1 || j <= i) {
+              fs.writeFileSync('/tmp/proposal-crew.json', '');
+              core.setOutput('hasJson', 'false');
+              return;
+            }
+            const fenced = body.slice(i + JSON_BEGIN.length, j).trim();
+            const m = fenced.match(/```(?:json)?\s*([\s\S]*?)```/);
+            fs.writeFileSync('/tmp/proposal-crew.json', (m ? m[1] : fenced).trim());
+            core.setOutput('hasJson', 'true');
+
+      - name: Validate before publish
+        id: validate
+        if: steps.extract.outputs.hasJson == 'true'
+        run: |
+          if node --input-type=module -e "
+            import { crewProblems } from './dist/crew/validate.js';
+            import fs from 'node:fs';
+            const crew = JSON.parse(fs.readFileSync('/tmp/proposal-crew.json', 'utf8'));
+            const problems = crewProblems(crew);
+            for (const p of problems) console.error(p);
+            process.exit(problems.length === 0 ? 0 : 1);
+          " 2>/tmp/problems.txt; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "problems<<PROBLEMS_EOF" >> "$GITHUB_OUTPUT"
+            cat /tmp/problems.txt >> "$GITHUB_OUTPUT"
+            echo "PROBLEMS_EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refuse invalid /publish
+        if: steps.extract.outputs.hasJson != 'true' || steps.validate.outputs.valid == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const problems = `${{ steps.validate.outputs.problems }}`.trim() || 'no CREW-JSON block found';
+            const L = ['⚠️ /publish refused — the JSON does not pass validation:', '', '```', problems, '```', '', 'Fix the JSON first; the validate job re-runs on every edit.'];
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: L.join('\n'),
+            });
+
+      - name: Commit to catalog
+        if: steps.validate.outputs.valid == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE' > /tmp/publish-out.txt
+            import { publishCrew } from "./dist/crew/registry.js";
+            import fs from "node:fs";
+            const crew = JSON.parse(fs.readFileSync("/tmp/proposal-crew.json", "utf8"));
+            const paths = await publishCrew(crew, {
+              repo: process.env.GITHUB_REPOSITORY,
+              branch: "main",
+              token: process.env.GITHUB_TOKEN,
+              authorName: "proagents-marketplace-bot",
+              authorEmail: "noreply@github.com",
+            });
+            console.log(crew.id + "@" + crew.version);
+            console.log("committed " + paths.itemPath + " and " + paths.catalogPath);
+          NODE
+          echo "PUBLISHED=$(head -1 /tmp/publish-out.txt)" >> "$GITHUB_ENV"
+          cat /tmp/publish-out.txt
+
+      - name: Confirm & close
+        if: steps.validate.outputs.valid == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const L = [
+              '🚀 **Published `' + process.env.PUBLISHED + '` to the marketplace catalog** (via /publish by @' + context.payload.comment.user.login + ').',
+              '',
+              'It appears in the [marketplace](https://enzovezzaro.github.io/proagents/app/) after the next Pages build — usually under a minute. Closing as completed. 🎉',
+            ];
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: L.join('\n'),
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              labels: ['crew-proposal', 'published'],
+            });
+
+      - name: Close rejected proposal
+        if: steps.gate.outputs.allowed == 'true' && steps.gate.outputs.command == 'close'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reason = (context.payload.comment.body ?? '').replace(/^\s*\/close\b/, '').trim();
+            const body = reason
+              ? 'This proposal was closed by a maintainer: ' + reason
+              : 'This proposal was closed by a maintainer.';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+            });

@@ -4,7 +4,7 @@ import { ItemCard, EmptyState, ErrorNote } from "../cards.js";
 import type { MarketplaceCatalog } from "../../types.js";
 
 /** Path of the Git-backed catalog relative to the app (site root). */
-const CATALOG_URL = new URL("../../../.marketplace/catalog.json", window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/catalog.json");
+import { CATALOG_URL } from "../../catalog.js";
 
 export function CatalogPage(_props: { ctx: AppCtx }): React.JSX.Element {
   const [catalog, setCatalog] = useState<MarketplaceCatalog | null>(null);
@@ -49,7 +49,7 @@ export function CatalogPage(_props: { ctx: AppCtx }): React.JSX.Element {
     return (
       <div>
         <h1>Catalog</h1>
-        <ErrorNote message={`Could not load the marketplace catalog (${error}). If you are running locally, the catalog lives at .marketplace/catalog.json in the repo.`} />
+        <ErrorNote message={`Could not load the marketplace catalog (${error}). If the site was just deployed, wait a minute and reload — otherwise open an issue at github.com/EnzoVezzaro/proagents.`} />
       </div>
     );
   }
@@ -58,7 +58,7 @@ export function CatalogPage(_props: { ctx: AppCtx }): React.JSX.Element {
     <div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0 }}>Agent & crew marketplace</h1>
-        <span style={{ color: "var(--cream-dim)", fontSize: 13 }}>Git-backed catalog · every listing is a JSON file in the open repo</span>
+        <span style={{ color: "var(--cream-dim)", fontSize: 13 }}>Free · MIT · every listing is a JSON file in the open repo</span>
       </div>
 
       <div style={{ display: "flex", gap: 10, margin: "20px 0 6px", flexWrap: "wrap", alignItems: "center" }}>
@@ -66,13 +66,14 @@ export function CatalogPage(_props: { ctx: AppCtx }): React.JSX.Element {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search crews, agents, tags…"
+          aria-label="Search the marketplace"
           style={{ flex: 1, minWidth: 240, background: "var(--ink-2)", color: "var(--cream)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 14px", fontSize: 14 }}
         />
         <a
-          href="#/builder"
-          style={{ background: "var(--lime)", color: "#000", borderRadius: 10, padding: "10px 16px", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
+          href="#/build"
+          style={{ background: "var(--lime)", color: "#0a0a0a", borderRadius: 10, padding: "10px 16px", fontWeight: 700, fontSize: 14, textDecoration: "none", whiteSpace: "nowrap" }}
         >
-          + Build your own crew
+          + Build a crew
         </a>
       </div>
 
@@ -84,9 +85,20 @@ export function CatalogPage(_props: { ctx: AppCtx }): React.JSX.Element {
       </div>
 
       {catalog === null ? (
-        <p style={{ color: "var(--cream-dim)" }}>Loading catalog…</p>
+        <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }} aria-label="Loading">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} style={{ background: "var(--ink-2)", border: "1px solid var(--line)", borderRadius: 14, padding: 20, minHeight: 148 }} />
+          ))}
+        </div>
       ) : items.length === 0 ? (
-        <EmptyState title="No matches" body="Try a different search, or build the crew you wish existed." />
+        <EmptyState
+          title={query || tag ? "No matches" : "The catalog is empty"}
+          body={
+            query || tag
+              ? "Try a different search or clear the tag filter — or build the crew you wish existed."
+              : "Be the first: build a crew in minutes and file a proposal — publishing is a GitHub issue away."
+          }
+        />
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
           {items.map((item) => (

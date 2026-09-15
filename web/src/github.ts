@@ -157,6 +157,20 @@ export async function putRepoFile(
   }
 }
 
+/** Create an issue on a repository (used for marketplace proposals). */
+export async function createIssue(token: string, repo: string, title: string, body: string, labels: string[]): Promise<{ number: number; html_url: string }> {
+  const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "content-type": "application/json" },
+    body: JSON.stringify({ title, body, labels }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`issue creation failed: HTTP ${res.status} ${text.slice(0, 200)}`);
+  }
+  return (await res.json()) as { number: number; html_url: string };
+}
+
 /** Count matching workers, needed by the preview prompt builder. */
 export async function listRepoTree(token: string, repo: string, ref?: string): Promise<string[]> {
   const url = `https://api.github.com/repos/${repo}/git/trees/${ref ?? "HEAD"}?recursive=1`;

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { CatalogPage } from "./pages/CatalogPage.js";
 import { CrewDetailPage } from "./pages/CrewDetailPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
+import { BuildEntryPage } from "./pages/BuildEntryPage.js";
 import { BuilderPage } from "./pages/BuilderPage.js";
 import { PreviewPage } from "./pages/PreviewPage.js";
 import { SettingsModal } from "./SettingsModal.js";
@@ -54,6 +55,8 @@ export function AppShell(props: { route: string; navigate: (to: string) => void 
     page = <PreviewPage id={decodeURIComponent(route.slice("preview/".length))} ctx={ctx} />;
   } else if (route === "dashboard") {
     page = <DashboardPage ctx={ctx} user={user} onOpenSettings={openSettings} />;
+  } else if (route === "build") {
+    page = <BuildEntryPage ctx={ctx} navigate={navigate} />;
   } else if (route === "builder") {
     page = <BuilderPage ctx={ctx} />;
   } else {
@@ -96,7 +99,7 @@ export function AppShell(props: { route: string; navigate: (to: string) => void 
         <nav style={{ display: "flex", gap: 18, fontSize: 14 }}>
           {nav("catalog", "Catalog")}
           {nav("dashboard", "Dashboard")}
-          {nav("builder", "Build a crew")}
+          {nav("build", "Build a crew")}
         </nav>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
           <a

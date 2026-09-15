@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AppShell } from "./ui/AppShell.js";
+import "./ui/styles.css";
 
 function App(): React.JSX.Element {
   const [route, setRoute] = useState(() => window.location.hash.replace(/^#\/?/, "") || "catalog");

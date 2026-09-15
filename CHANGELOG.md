@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Two-path crew builder** — `Build a crew` now offers: (1) *start from your repo* — a
+  deterministic analyzer turns the repo's file tree into a grounded starter crew (suggested
+  workers with reasons, real context scopes, handoffs), fully editable afterwards; (2)
+  *build it custom* — empty crew, full control
+- **Issue-based marketplace publishing** — publishing files a `crew-proposal` GitHub issue
+  (from the builder or `proagent crew submit`); the new `Crew proposal pipeline` workflow
+  validates the embedded JSON with the deterministic validator and posts the verdict, and a
+  maintainer `/publish` (write-gated) commits it to the catalog. `/close` rejects. Issue
+  form template included; nothing goes live without human review
+- SPA craft pass: global focus-visible rings, button hover/active feedback, skeleton
+  loading states for the catalog, refined type ramp and shared design tokens
+
+### Changed
+
+- The builder's Ship tab now leads with *local install* (download JSON + copy CLI command)
+  before *marketplace proposal*; direct SPA commits to the catalog were removed in favor of
+  proposals
+- Marketplace guide rewritten around the two build paths and the proposal pipeline
+
 ## [0.4.1] - 2026-09-15
 
 ### Removed

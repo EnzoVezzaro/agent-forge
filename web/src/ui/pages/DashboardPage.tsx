@@ -3,7 +3,7 @@ import type { AppCtx } from "../AppShell.js";
 import { ErrorNote, EmptyState } from "../cards.js";
 import type { CrewDefinition, MarketplaceCatalog } from "../../types.js";
 
-const CATALOG_URL = new URL("../../../.marketplace/catalog.json", window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/catalog.json");
+import { CATALOG_URL, catalogUrl } from "../../catalog.js";
 
 export function DashboardPage(props: { ctx: AppCtx; user: { login: string } | null; onOpenSettings: () => void }): React.JSX.Element {
   const { user } = props;
@@ -21,7 +21,7 @@ export function DashboardPage(props: { ctx: AppCtx; user: { login: string } | nu
           catalog.items
             .filter((i) => i.author.toLowerCase() === user.login.toLowerCase())
             .map(async (i) => {
-              const res = await fetch(new URL(`../../../.marketplace/items/${i.id}.json`, window.location.href).href.replace(/\/app\/.*$/, "/.marketplace/items/") + `${i.id}.json`);
+              const res = await fetch(catalogUrl(`items/${i.id}.json`));
               return (await res.json()) as CrewDefinition;
             }),
         );

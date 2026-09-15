@@ -1,0 +1,84 @@
+/* ProAgents Marketplace — global styles (imported by main.tsx) */
+
+:root {
+  --ink: #050505;
+  --ink-2: #0c0c0c;
+  --cream: #f1eeea;
+  --cream-dim: #a8a69f;
+  --lime: #b9fb1d;
+  --lime-dark: #7ecf02;
+  --line: #232323;
+  --danger: #ff7b72;
+  --ok: #7ee787;
+}
+
+html, body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--cream);
+}
+
+/* Keyboard focus ring — visible, brand-colored, consistent everywhere. */
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+/* Buttons get real hover/active feedback globally. */
+button {
+  font-family: inherit;
+}
+button:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+button:not(:disabled):active {
+  transform: translateY(1px);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Links */
+a {
+  transition: color 0.15s ease;
+}
+
+/* Inputs */
+input, select, textarea {
+  font-family: inherit;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--lime) !important;
+}
+
+/* Scrollbar — dark, subtle */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+::selection {
+  background: rgba(185, 251, 29, 0.35);
+  color: #0a0a0a;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

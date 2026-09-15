@@ -1,0 +1,51 @@
+name: 🧩 Crew proposal
+description: Propose a new crew or agent for the ProAgents marketplace
+title: "[crew-proposal] <crew-id> v<version>"
+labels: ["crew-proposal", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a crew! **The easiest way to fill this in** is the
+        [marketplace builder](https://enzovezzaro.github.io/proagents/app/) —
+        *Build a crew → File marketplace proposal* creates this issue with everything
+        pre-filled, and CI validates it within seconds.
+
+        You can also paste a crew JSON below by hand (e.g. from
+        `proagent crew build`).
+
+  - type: textarea
+    id: crew-json
+    attributes:
+      label: Crew JSON
+      description: The complete CrewDefinition. Wrapped in the markers CI parses.
+      placeholder: |
+        <!-- CREW-JSON-BEGIN -->
+        ```json
+        { ... }
+        ```
+        <!-- CREW-JSON-END -->
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why this crew?
+      description: What jobs does it do, and for whom? What does it refuse to do?
+      placeholder: Helps maintainers of monorepos triage failed CI runs…
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: attestations
+    attributes:
+      label: Attestations
+      options:
+        - label: This crew is my own work (or I have the right to MIT-license it)
+          required: true
+        - label: The crew follows least privilege — workers get only the permissions they need
+          required: true
+        - label: I understand publishing is free and the listing will be MIT-licensed
+          required: true

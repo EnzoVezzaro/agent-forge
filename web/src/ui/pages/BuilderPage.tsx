@@ -9,8 +9,8 @@ import {
   type CrewMcpServer,
   type CrewPermissions,
   type CrewWorker,
-  type MarketplaceCatalog,
 } from "../../types.js";
+import { issueBody, issueTitle } from "../../proposal.js";
 
 /**
  * Crew builder — the GUI counterpart of the CLI interview. Agentic-first:
@@ -78,8 +78,27 @@ function validate(crew: CrewDefinition): string[] {
 
 export function BuilderPage(props: { ctx: AppCtx }): React.JSX.Element {
   const { settings, navigate } = props.ctx;
-  const [crew, setCrew] = useState<CrewDefinition>(() => emptyCrew(settings.githubToken ? "" : "anonymous"));
-  const [tab, setTab] = useState<"identity" | "workers" | "mcp" | "graph" | "ship">("identity");
+  const [crew, setCrew] = useState<CrewDefinition>(() => {
+    // A draft from the build-entry (repo analysis) lands here via sessionStorage.
+    try {
+      const raw = sessionStorage.getItem("proagents-builder-draft");
+      if (raw) {
+        sessionStorage.removeItem("proagents-builder-draft");
+        const parsed = JSON.parse(raw) as CrewDefinition;
+        if (parsed && Array.isArray(parsed.workers) && parsed.workers.length > 0) return parsed;
+      }
+    } catch {
+      /* fall through to empty */
+    }
+    return emptyCrew("");
+  });
+  const [tab, setTab] = useState<"identity" | "workers" | "mcp" | "graph" | "ship">(() => {
+    // With a prefilled draft, land the user on Identity to confirm name/author first.
+    try {
+      if (sessionStorage.getItem("proagents-builder-draft")) return "identity";
+    } catch { /* ignore */ }
+    return "identity";
+  });
   const [problems, setProblems] = useState<string[] | null>(null);
   const [publishState, setPublishState] = useState<string>("");
 
@@ -97,49 +116,32 @@ export function BuilderPage(props: { ctx: AppCtx }): React.JSX.Element {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Publish = file a marketplace proposal issue on the catalog repo. The
+   * repository's CI validates the embedded JSON instantly; a maintainer merge
+   * comment (`/publish`) commits it to the catalog and Pages serves it.
+   */
   const publish = async () => {
     const errs = validate(crew);
     setProblems(errs);
     if (errs.length > 0) return;
     if (!settings.githubToken) {
-      setPublishState("Sign in with GitHub (or add a token in Settings) to publish — publishing is a commit to the catalog.");
+      setPublishState("Sign in with GitHub (header) to publish — publishing files a proposal issue on the catalog repo.");
       return;
     }
-    setPublishState("Publishing… (commits items/<id>.json + catalog.json via the GitHub API)");
+    setPublishState("Filing marketplace proposal…");
     try {
-      const { putRepoFile, getRepoFile } = await import("../../github.js");
-      const repo =
-        (import.meta.env.VITE_MARKET_REPO as string | undefined) ?? "EnzoVezzaro/proagents";
-      const itemPath = `.marketplace/items/${crew.id}.json`;
-      const existing = await getRepoFile(settings.githubToken, repo, itemPath, "main");
-      await putRepoFile(settings.githubToken, repo, itemPath, JSON.stringify(crew, null, 2) + "\n", `crew: publish ${crew.id}@${crew.version}`, existing?.sha ?? null, "main");
-      const catalogFile = await getRepoFile(settings.githubToken, repo, ".marketplace/catalog.json", "main");
-      const catalog = catalogFile ? (JSON.parse(catalogFile.content) as MarketplaceCatalog) : { schemaVersion: 1 as const, updatedAt: new Date().toISOString(), items: [] };
-      const entry = {
-        id: crew.id,
-        name: crew.name,
-        version: crew.version,
-        description: crew.description,
-        author: crew.author || "anonymous",
-        tags: crew.tags,
-        kind: (crew.workers.length > 1 ? "crew" : "agent") as "crew" | "agent",
-        downloads: catalog.items.find((i) => i.id === crew.id)?.downloads ?? 0,
-        createdAt: catalog.items.find((i) => i.id === crew.id)?.createdAt ?? crew.createdAt,
-        updatedAt: crew.updatedAt,
-      };
-      const items = [...catalog.items.filter((i) => i.id !== crew.id), entry].sort((a, b) => a.id.localeCompare(b.id));
-      await putRepoFile(
-        settings.githubToken,
-        repo,
-        ".marketplace/catalog.json",
-        JSON.stringify({ schemaVersion: 1, updatedAt: new Date().toISOString(), items }, null, 2) + "\n",
-        `crew: update catalog index for ${crew.id}`,
-        catalogFile?.sha ?? null,
-        "main",
-      );
-      setPublishState(`✓ Published to ${repo}@main. It appears in the catalog after the next Pages build (usually <1 min).`);
+      const { createIssue } = await import("../../github.js");
+      const repo = (import.meta.env.VITE_MARKET_REPO as string | undefined) ?? "EnzoVezzaro/proagents";
+      const res = await createIssue(settings.githubToken, repo, issueTitle(crew), issueBody(crew), ["crew-proposal"]);
+      setPublishState(`✓ Proposal filed: ${res.html_url}\nCI validates it within seconds. A maintainer merges it with /publish and it appears in the marketplace.`);
     } catch (err) {
-      setPublishState(`Publish failed: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      setPublishState(
+        msg.includes("422") || msg.includes("410")
+          ? `Could not file the issue (${msg.slice(0, 120)}). The repo may have issues disabled — export the JSON and attach it to a proposal manually.`
+          : `Publish failed: ${msg}`,
+      );
     }
   };
 
@@ -170,7 +172,7 @@ export function BuilderPage(props: { ctx: AppCtx }): React.JSX.Element {
       {tab === "workers" && <WorkersTab crew={crew} update={update} updateWorker={updateWorker} />}
       {tab === "mcp" && <McpTab crew={crew} update={update} />}
       {tab === "graph" && <GraphTab crew={crew} update={update} />}
-      {tab === "ship" && <ShipTab problems={problems} publish={publish} publishState={publishState} exportJson={exportJson} navigate={navigate} />}
+      {tab === "ship" && <ShipTab crew={crew} problems={problems} publish={publish} publishState={publishState} exportJson={exportJson} navigate={navigate} />}
     </div>
   );
 }
@@ -414,28 +416,27 @@ function GraphTab(props: { crew: CrewDefinition; update: (p: Partial<CrewDefinit
 }
 
 function ShipTab(props: {
+  crew: CrewDefinition;
   problems: string[] | null;
   publish: () => void;
   publishState: string;
   exportJson: () => void;
   navigate: (to: string) => void;
 }): React.JSX.Element {
-  const { problems, publish, publishState, exportJson, navigate } = props;
+  const { crew, problems, publish, publishState, exportJson, navigate } = props;
+  const [copied, setCopied] = useState("");
+  const copy = async (text: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+      window.setTimeout(() => setCopied(""), 2000);
+    } catch {
+      setCopied("");
+    }
+  };
+  const cliCommand = `proagent crew build ./crew.json --file ${crew.id || "my-crew"}.json`;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <Card>
-        <label style={label}>License</label>
-        <p style={{ color: "var(--cream-dim)", fontSize: 13, lineHeight: 1.6, margin: "4px 0 10px" }}>
-          Everything in the marketplace is <strong style={{ color: "var(--lime)" }}>free and MIT-licensed</strong> —
-          publishing a listing shares it with everyone. If your crew helps people, consider a
-          donation link in the description instead of a price tag.
-        </p>
-        <div style={{ display: "flex", gap: 14, fontSize: 13 }}>
-          <a href="https://github.com/sponsors/EnzoVezzaro" target="_blank" rel="noreferrer" style={{ color: "var(--lime)" }}>♥ Become a sponsor</a>
-          <a href="https://ko-fi.com/enzojuniorvezzaro" target="_blank" rel="noreferrer" style={{ color: "var(--lime)" }}>☕ Buy me a coffee</a>
-        </div>
-      </Card>
-
       {problems && problems.length > 0 && (
         <div>
           <ErrorNote message={problems.join(" ")} />
@@ -443,15 +444,54 @@ function ShipTab(props: {
       )}
 
       <Card>
+        <label style={label}>1 · Use it right now (local install)</label>
+        <p style={{ color: "var(--cream-dim)", fontSize: 13, lineHeight: 1.6, margin: "4px 0 10px" }}>
+          Export the JSON and hand it to the CLI — it installs the crew into whatever repo you
+          run it in (skills, agent contracts, merged <code>.mcp.json</code>):
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button onClick={exportJson} style={btn}>Download {crew.id || "crew"}.json</button>
+          <button onClick={() => copy(cliCommand, "cli")} style={btnGhost}>{copied === "cli" ? "✓ Copied" : "Copy CLI command"}</button>
+        </div>
+        <pre style={{ background: "var(--ink)", border: "1px solid var(--line)", borderRadius: 10, padding: 14, fontSize: 13, overflowX: "auto", marginTop: 12 }}>
+          <code>{cliCommand}</code>
+        </pre>
+      </Card>
+
+      <Card>
+        <label style={label}>2 · Share it on the marketplace</label>
+        <p style={{ color: "var(--cream-dim)", fontSize: 13, lineHeight: 1.6, margin: "4px 0 12px" }}>
+          Everything published here is <strong style={{ color: "var(--lime)" }}>free and MIT-licensed</strong>.
+          Publishing files a <strong>proposal issue</strong> on the ProAgents repo — CI validates
+          your crew automatically, and a maintainer merge (<code>/publish</code>) puts it in the
+          marketplace. Nothing goes live without a human review.
+        </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button onClick={publish} style={btn}>Publish to marketplace</button>
-          <button onClick={exportJson} style={btnGhost}>Export crew JSON</button>
+          <button onClick={publish} style={btn}>File marketplace proposal</button>
+          <button onClick={() => copy(issueBody(crew), "json")} style={btnGhost}>{copied === "json" ? "✓ Copied proposal" : "Copy proposal markdown"}</button>
           <button onClick={() => navigate("catalog")} style={btnGhost}>Back to catalog</button>
         </div>
-        {publishState && <p style={{ marginTop: 12, fontSize: 13, color: publishState.startsWith("✓") ? "var(--lime)" : "var(--cream-dim)" }}>{publishState}</p>}
-        <p style={{ color: "var(--cream-dim)", fontSize: 12, marginTop: 10 }}>
-          Publishing commits two files to the open catalog repo: <code>.marketplace/items/&lt;id&gt;.json</code> and an index update in <code>.marketplace/catalog.json</code>. Git history is the audit log.
-        </p>
+        {publishState && (
+          <p style={{ marginTop: 12, fontSize: 13, color: publishState.startsWith("✓") ? "var(--lime)" : "var(--cream-dim)", whiteSpace: "pre-wrap" }}>
+            {publishState.includes("http") ? (
+              <>
+                {publishState.split(/(https:\/\/[^\s)]+)/).map((part, i) =>
+                  part.startsWith("https://") ? (
+                    <a key={i} href={part} target="_blank" rel="noreferrer" style={{ color: "var(--lime)", fontWeight: 700 }}>{part}</a>
+                  ) : (
+                    <span key={i}>{part}</span>
+                  ),
+                )}
+              </>
+            ) : (
+              publishState
+            )}
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 14, fontSize: 12, marginTop: 14 }}>
+          <a href="https://github.com/sponsors/EnzoVezzaro" target="_blank" rel="noreferrer" style={{ color: "var(--cream-dim)" }}>♥ Sponsor the project</a>
+          <a href="https://ko-fi.com/enzojuniorvezzaro" target="_blank" rel="noreferrer" style={{ color: "var(--cream-dim)" }}>☕ Ko-fi</a>
+        </div>
       </Card>
     </div>
   );
