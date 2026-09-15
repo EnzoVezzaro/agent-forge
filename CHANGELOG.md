@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.1] - 2026-09-15
 
 ### Removed
 
@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Donation links in the marketplace app (header ♥ Donate button, footer, detail page,
   builder ship tab) — Sponsors + Ko-fi, no payment processor in the codebase
 - 7 env tests (parsing, precedence, directory walk-up, global fallback, sensitivity classes)
+- `npm run gh:token` — one-command GitHub App device-flow token refresh: prints a code,
+  waits for authorization at `github.com/login/device`, verifies identity and writes
+  `GITHUB_TOKEN` into the gitignored `.env`
 
 ### Changed
 
