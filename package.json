@@ -1,6 +1,6 @@
 {
   "name": "proagent",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ProAgents — an agentic CLI + skill that turns an incomplete idea into a well-defined, validated multi-agent system through progressive questioning. Provider-agnostic, context-framework pluggable.",
   "type": "module",
   "license": "MIT",
