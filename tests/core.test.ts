@@ -225,4 +225,30 @@ describe("specification and multi-agent", () => {
     expect(report.findings.some((f) => f.code === "PA009")).toBe(true);
     expect(report.ok).toBe(false);
   });
+
+  it("keeps strictly read-only systems single-agent even when review and environment are involved", () => {
+    const state = runInterview("I want an agent that reviews pull requests for security issues.", [
+      "It reviews diffs of pull requests in our TypeScript service; flags security issues and posts comments.",
+      "The service runs on Kubernetes in production.",
+      "Read-only: it never modifies code or infrastructure; humans approve and execute every merge.",
+    ]);
+    const arch = buildArchitecture(state);
+    expect(arch.decision.singleAgentSufficient).toBe(true);
+    expect(arch.agents).toHaveLength(1);
+    expect(arch.agents[0]!.role).not.toBe("implementation");
+    expect(arch.agents[0]!.role).not.toBe("operations");
+    expect(validateArchitecture(arch).ok).toBe(true);
+  });
+
+  it("still derives a team when a read-only user explicitly asks for multiple agents", () => {
+    const state = runInterview("I want a team of agents that reviews pull requests for security issues.", [
+      "It reviews diffs of pull requests in our TypeScript service; flags security issues and posts comments.",
+      "The service runs on Kubernetes in production.",
+      "Read-only: it never modifies code or infrastructure.",
+      "Use sub-agents: one researcher and one reviewer.",
+    ]);
+    const arch = buildArchitecture(state);
+    expect(arch.decision.singleAgentSufficient).toBe(false);
+    expect(arch.agents.length).toBeGreaterThan(1);
+  });
 });

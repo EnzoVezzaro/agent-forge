@@ -24,11 +24,19 @@ interface IndexedFile {
   text: string | null;
 }
 
+// Common English words that should never drive retrieval scoring.
+const STOPWORDS = new Set([
+  "and", "the", "for", "with", "from", "that", "this", "into", "onto", "over",
+  "under", "when", "what", "which", "where", "how", "why", "who", "not", "are",
+  "was", "were", "has", "have", "had", "its", "our", "your", "their", "his",
+  "her", "but", "all", "can", "will", "may", "out", "per", "via", "use", "using",
+]);
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9_./-]+/)
-    .filter((t) => t.length > 2);
+    .filter((t) => t.length > 2 && !STOPWORDS.has(t));
 }
 
 /** Walk roots breadth-first, collecting candidate files. */

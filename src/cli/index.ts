@@ -1,6 +1,13 @@
 #!/usr/bin/env node
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+
+// Single source of truth for the version: the package manifest.
+const VERSION: string =
+  (JSON.parse(fsSync.readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
+    version?: string;
+  }).version ?? "0.0.0-dev";
 import { InterviewOrchestrator } from "../core/orchestrator.js";
 import { capabilityGaps, detectRuntimeCapabilities } from "../core/runtime.js";
 import { SessionStore } from "../core/session.js";
@@ -16,8 +23,6 @@ import {
   renderValidation,
 } from "../output/render.js";
 import type { AgentArchitecture, SelfImprovementPolicy } from "../core/types.js";
-
-const VERSION = "0.1.0";
 
 interface ParsedArgs {
   command: string;

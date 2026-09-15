@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- CLI version is read from `package.json` at runtime — the published 0.1.1 binary
+  incorrectly reported 0.1.0 (found by dogfooding the published package)
+- Strictly read-only systems are no longer planned as implementer/operator teams; the
+  single-vs-team decision honors the declared permission polarity, while explicit
+  multi-agent requests still produce teams restricted to read-only roles
+- Filesystem context retrieval ignores common English stopwords that caused irrelevant
+  snippets (e.g. matching on "and")
+
 ## [0.1.1] - 2026-09-15
 
 ### Changed

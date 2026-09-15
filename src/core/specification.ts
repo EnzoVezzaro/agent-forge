@@ -172,10 +172,21 @@ export function decideSingleVsTeam(state: KnowledgeState): {
   separatedResponsibilities: string[];
 } {
   const signals = detectSplitSignals(state);
+  const readOnly = isReadOnlySystem(state);
+  const multi = explicitlyMultiAgent(state);
+  if (readOnly && !multi) {
+    return {
+      singleAgentSufficient: true,
+      reason: "The captured requirements explicitly describe a read-only system; producing and executing changes is out of scope, so implementation/operations agents would violate the permission model.",
+      separatedResponsibilities: [],
+    };
+  }
   if (signals.length >= 2) {
     return {
       singleAgentSufficient: false,
-      reason: `Requirements indicate ${signals.length} separable concerns: ${signals.map((s) => s.signal).join(", ")}.`,
+      reason: readOnly
+        ? `Requirements indicate ${signals.length} separable concerns (${signals.map((s) => s.signal).join(", ")}); the team will be restricted to read-only roles.`
+        : `Requirements indicate ${signals.length} separable concerns: ${signals.map((s) => s.signal).join(", ")}.`,
       separatedResponsibilities: signals.map((s) => s.signal),
     };
   }
@@ -186,6 +197,48 @@ export function decideSingleVsTeam(state: KnowledgeState): {
       : "No separable concerns detected; a single agent keeps the system simple and inspectable.",
     separatedResponsibilities: [],
   };
+}
+
+/**
+ * True when the captured requirements explicitly declare the system read-only
+ * (the write-access interview question establishes this polarity). Positive
+ * markers are used instead of write-word matching: a sentence like "posts
+ * comments for humans to approve before merge" mentions writes that belong to
+ * humans, not to the agent.
+ */
+export function isReadOnlySystem(state: KnowledgeState): boolean {
+  return state.facts.some((fact) => READ_ONLY_MARKERS.test(fact.statement));
+}
+
+const READ_ONLY_MARKERS = new RegExp(
+  [
+    "\\b(read-only|readonly)\\b",
+    "\\bnever\\s+(modif|write|touch|deploy|restart|edit)",
+    "\\bno\\s+write\\s+access\\b",
+    "\\b(reads?|analy[sz]es?|comments?|reviews?)\\s+only\\b",
+    "\\bonly\\s+(reads?|analy[sz]es?|comments?|reviews?)\\b",
+    "\\bread(s)?\\s+and\\s+analy[sz]e(s)?\\s+only\\b",
+    "\\bcomments?\\s+only,?\\s+never\\b",
+  ].join("|"),
+  "i",
+);
+
+/** Roles that are safe for read-only systems (no produce/execute duties). */
+const READ_ONLY_SAFE_ROLES = new Set<Role>([
+  "research",
+  "review",
+  "infrastructure",
+  "monitoring",
+  "documentation",
+]);
+
+/** True when the requirements explicitly asked for multiple agents. */
+export function explicitlyMultiAgent(state: KnowledgeState): boolean {
+  const intentAndFacts = `${state.intent} ${state.facts.map((f) => f.statement).join(" ")}`;
+  if (/\b(sub-?agent|multi-?agent|team of agents)\b/i.test(intentAndFacts)) return true;
+  return state.questions.some(
+    (q) => q.status === "answered" && q.template === "multi-agent-split",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -446,13 +499,20 @@ export function buildArchitecture(
 
   // Multi-agent: derive roles from facts, always include review when split.
   const text = state.facts.map((f) => f.statement).join(" ") + " " + state.intent;
+  const readOnly = isReadOnlySystem(state);
   const roles = new Set<Role>();
   for (const { role, patterns } of ROLE_SIGNALS) {
     if (patterns.some((p) => p.test(text))) roles.add(role);
   }
+  if (readOnly) {
+    // A read-only system must not plan agents that produce or execute changes.
+    for (const role of [...roles]) {
+      if (!READ_ONLY_SAFE_ROLES.has(role)) roles.delete(role);
+    }
+  }
   // Ensure a sensible minimal topology.
   if (!roles.has("research")) roles.add("research");
-  if (!roles.has("implementation") && (roles.has("research") || roles.has("infrastructure"))) {
+  if (!readOnly && !roles.has("implementation") && (roles.has("research") || roles.has("infrastructure"))) {
     roles.add("implementation");
   }
   if (roles.size >= 2) roles.add("review");
