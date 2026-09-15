@@ -7,6 +7,7 @@ import {
   extractFacts,
   detectContradictions,
 } from "./engine.js";
+import { scanRepo } from "./repo-scan.js";
 import { buildArchitecture } from "./specification.js";
 import { SessionStore } from "./session.js";
 import { FrameworkRegistry } from "../context/registry.js";
@@ -49,6 +50,11 @@ export class InterviewOrchestrator {
       return existing;
     }
 
+    // Repo-aware bootstrap: in an existing codebase, scan it deterministically
+    // and pre-seed facts so the interview never asks what the repo already
+    // answers (language, frameworks, CI, tests, MCP, existing skills).
+    const scan = await scanRepo(process.cwd()).catch(() => null);
+
     const now = new Date().toISOString();
     const state: KnowledgeState = {
       version: 1,
@@ -72,6 +78,12 @@ export class InterviewOrchestrator {
     const seedFacts = extractFacts(opts.intent, "intent");
     if (seedFacts[0]) seedFacts[0].category = "objective";
     state.facts.push(...seedFacts);
+
+    // Then the repo-derived facts (only when actually inside a project).
+    if (scan?.isProject) {
+      state.facts.push(...scan.facts);
+      state.contextSources.push(...scan.detected.map((d): KnowledgeState["contextSources"][number] => ({ kind: "path", value: d })));
+    }
 
     // Seed the first derived questions so they are persisted and answerable.
     this.syncQuestions(state);

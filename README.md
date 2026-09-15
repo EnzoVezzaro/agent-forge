@@ -77,16 +77,24 @@ proagent build       # → .agents/skills/<agent>/SKILL.md + agent.json
 
 ## Working in an existing repo
 
-Already have code? Run `proagent init` **at the repo root** — the session reads your
-project while it interviews you, so questions and the generated architecture are grounded
-in your actual stack instead of generic guesses:
+Already have code? Just run `proagent init` **at the repo root** — no `--intent` needed.
+The session scans your repo first (deterministically, no model calls): manifests, README,
+directory structure, CI, tests, `.mcp.json`, existing `.agents/` skills. It then
+**proposes an intent** for you to confirm instead of asking "What are you trying to build?",
+and **pre-seeds the facts the repo already answers** — so the interview skips those and
+only asks what the code genuinely can't tell it (environments, write/approval policy, scope):
 
 ```bash
 cd my-existing-repo
 
-# 1. start a session anchored to this repo (pass --context to index extra dirs)
-proagent init --intent "An agent that reviews our PRs for security issues" \
-  --context src --context docs
+# 1. start a session anchored to this repo — intent is proposed from the scan
+proagent init
+#  note: no --intent given; using repo-derived proposal:
+#  "Processes orders over a REST API — an agent for this TypeScript project (Express, vitest, TypeScript)."
+#  detected: Language: TypeScript (package.json + tsconfig.json) · Framework: Express ·
+#            Tests: tests/ · CI: GitHub Actions · ...
+#  (pass --intent to override the proposal; --context to index extra dirs)
+proagent init --intent "An agent that reviews our PRs for security issues" --context src --context docs
 
 # 2. answer the interview — every answer updates readiness and confidence
 proagent question                     # next highest-value question

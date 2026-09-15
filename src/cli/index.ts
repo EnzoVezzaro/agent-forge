@@ -29,6 +29,7 @@ import {
   renderValidation,
 } from "../output/render.js";
 import type { AgentArchitecture, SelfImprovementPolicy } from "../core/types.js";
+import { scanRepo } from "../core/repo-scan.js";
 import { runBenchmarkCommand } from "./benchmark.js";
 import { runCrewCommand } from "./crew.js";
 
@@ -142,13 +143,44 @@ function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
 
-async function readIntentInteractively(): Promise<string> {
+/**
+ * Resolve the intent for `init`, repo-aware:
+ *  - explicit --intent always wins;
+ *  - interactive TTY in a repo: show what was detected, propose an intent,
+ *    Enter accepts it;
+ *  - interactive TTY outside a repo: classic blank prompt;
+ *  - non-interactive (piped/CI) in a repo: auto-accept the proposed intent
+ *    (noted on stderr) instead of failing — the repo IS the context.
+ */
+async function resolveIntent(flags: Record<string, string | boolean>, args: string[]): Promise<string> {
+  const explicit = typeof flags.intent === "string" && flags.intent ? flags.intent : args.join(" ");
+  if (explicit) return explicit;
+
+  const scan = await scanRepo(process.cwd()).catch(() => null);
+  const inProject = Boolean(scan?.isProject && scan);
+
   if (process.stdin.isTTY && !process.env.PROAGENT_NON_INTERACTIVE) {
+    if (inProject && scan) {
+      process.stdout.write("\n◇ Detected project:");
+      for (const d of scan.detected.slice(0, 5)) process.stdout.write(`\n  · ${d}`);
+      process.stdout.write(`\n\n◇ What should the agent do in this repo? (Enter to accept the proposal)\n  › ${scan.proposedIntent}\n  › `);
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+      const text = Buffer.concat(chunks).toString("utf8").trim();
+      return text || scan.proposedIntent;
+    }
     process.stdout.write("\n◇ What are you trying to build?\n  › ");
     const chunks: Buffer[] = [];
     for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
     const text = Buffer.concat(chunks).toString("utf8").trim();
     if (text) return text;
+    fail("No intent provided. Use: proagent init --intent \"...\"");
+  }
+
+  // Non-interactive: a repo proposal is grounded enough to proceed on.
+  if (inProject && scan) {
+    console.error(`note: no --intent given; using repo-derived proposal: "${scan.proposedIntent}"`);
+    return scan.proposedIntent;
   }
   fail("No intent provided. Use: proagent init --intent \"...\"");
 }
@@ -157,21 +189,16 @@ async function cmdInit(flags: Record<string, string | boolean>, args: string[]):
   const store = new SessionStore();
   const orchestrator = new InterviewOrchestrator(store);
 
-  let intent = typeof flags.intent === "string" ? flags.intent : args.join(" ");
   const nonInteractive = flags["non-interactive"] === true || process.env.PROAGENT_NON_INTERACTIVE === "1";
-  if (!intent && !nonInteractive) intent = await readIntentInteractively();
-  if (!intent) {
-    // No intent given: resume the existing session if there is one, otherwise
-    // tell the caller exactly what is needed instead of failing silently.
-    const existingSession = await store.load();
-    if (!existingSession) {
-      printJson({ status: "needs_input", error: "intent_required", message: 'Run: proagent init --intent "..."' });
-      return;
-    }
-  }
+  // Repo-aware intent resolution: --intent > interactive prompt (with repo
+  // proposal) > non-interactive auto-accept of the repo-derived proposal.
+  const intent = await resolveIntent(flags, args);
+  const usingProposal =
+    !(typeof flags.intent === "string" && flags.intent) &&
+    args.length === 0; // proposal path never passes positional args
 
   const state = await orchestrator.init({
-    intent: intent ?? "",
+    intent,
     contextPaths: parseContextList(flags),
     framework: typeof flags["context-framework"] === "string" ? flags["context-framework"] : undefined,
     selfImprovement: parseSelfImprovement(flags),

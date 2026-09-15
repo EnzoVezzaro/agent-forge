@@ -55,6 +55,25 @@ function detectTopics(text: string): QuestionTopic[] {
   return topics;
 }
 
+/**
+ * Topics a fact covers by virtue of its category, not just its wording —
+ * e.g. an objective-categorized fact (from the intent or a repo scan) covers
+ * the "objective" topic even if no pattern word matches. This is what lets a
+ * repo-aware init skip questions the repo already answers.
+ */
+const CATEGORY_TOPICS: Partial<Record<FactCategory, QuestionTopic[]>> = {
+  objective: ["objective", "scope"],
+  capability: ["tools"],
+  context: ["context"],
+  permission: ["permissions"],
+  risk: ["risk"],
+};
+
+function factTopics(f: Fact): QuestionTopic[] {
+  const fromCategory = CATEGORY_TOPICS[f.category] ?? [];
+  return [...new Set([...detectTopics(f.statement), ...fromCategory])];
+}
+
 /** Extract normalized facts from an answer's raw text. */
 export function extractFacts(raw: string, source: string): Fact[] {
   const now = new Date().toISOString();
@@ -315,7 +334,7 @@ export function deriveQuestions(state: KnowledgeState): Question[] {
     if (q.status === "answered") for (const t of q.topics) coveredTopics.add(t);
   }
   for (const f of state.facts) {
-    for (const t of detectTopics(f.statement)) coveredTopics.add(t);
+    for (const t of factTopics(f)) coveredTopics.add(t);
   }
 
   const next: Question[] = [];
@@ -413,7 +432,7 @@ export function computeCoverage(state: KnowledgeState): CoverageArea[] {
     if (q.status === "answered") for (const t of q.topics) coveredTopics.add(t);
   }
   for (const f of state.facts) {
-    for (const t of detectTopics(f.statement)) coveredTopics.add(t);
+    for (const t of factTopics(f)) coveredTopics.add(t);
   }
 
   const seenAreas = new Set<string>();
@@ -441,7 +460,7 @@ export function computeConfidence(state: KnowledgeState): number {
   const highImpactUncovered = HIGH_IMPACT_TOPICS.filter((t) => {
     const covered =
       state.questions.some((q) => q.status === "answered" && q.topics.includes(t)) ||
-      state.facts.some((f) => detectTopics(f.statement).includes(t));
+      state.facts.some((f) => factTopics(f).includes(t));
     return !covered;
   }).length;
 

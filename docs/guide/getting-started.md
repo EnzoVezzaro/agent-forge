@@ -30,6 +30,28 @@ proagent answer q_001 "It diagnoses incidents in our TypeScript services and pro
 Each answer changes the next derived question. Mentioning production unlocks the
 permissions probe; mentioning approval unlocks the approval-flow probe.
 
+## In an existing repo: `init` reads first, then asks
+
+Run `proagent init` **without `--intent`** at the root of an existing project and it
+scans the repo deterministically before anything else — manifests, README, directory
+structure, CI, tests, `.mcp.json`, existing `.agents/` skills:
+
+```bash
+cd my-existing-repo
+proagent init
+# note: no --intent given; using repo-derived proposal:
+#   "Processes orders over a REST API — an agent for this TypeScript project (Express, vitest, TypeScript)."
+#   detected: Language: TypeScript (package.json + tsconfig.json) · Framework: Express (package.json)
+#             Tests: tests/ · CI: GitHub Actions · ...
+```
+
+- The scan **proposes an intent** from your README — confirm it, or pass `--intent` to override.
+- Facts the repo already answers (language, frameworks, test suite, CI, MCP servers,
+  existing skills) are **pre-seeded into the session**, so the interview never asks about them.
+- Only genuine gaps remain: environments, read vs. write + approval gates, scope.
+
+The same rules power the GUI: marketplace → *Build a crew* → *Start from your repo*.
+
 ## Ground it in context
 
 ```bash

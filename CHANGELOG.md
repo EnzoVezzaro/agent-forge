@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Repo-aware `init`** — running `proagent init` without `--intent` in an existing repo
+  scans it deterministically (manifests, README, structure, CI, tests, MCP config, agent
+  skills), proposes a repo-derived intent, and pre-seeds the facts the repo already answers;
+  the interview only asks genuine gaps (non-TTY auto-accepts the proposal). Engine now
+  skips questions whose *categories* are already covered by seeded facts. New
+  `src/core/repo-scan.ts` + 4 tests (`BENCH-REPO-SCAN-*`), including a determinism test
+  that caught per-scan ID leakage.
+
 ## [0.5.1] - 2026-09-15
 
 ### Added
