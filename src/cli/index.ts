@@ -32,6 +32,7 @@ import type { AgentArchitecture, SelfImprovementPolicy } from "../core/types.js"
 import { scanRepo } from "../core/repo-scan.js";
 import { runBenchmarkCommand } from "./benchmark.js";
 import { runCrewCommand } from "./crew.js";
+import { promptLine, warnIfStandalone } from "./interactive.js";
 
 interface ParsedArgs {
   command: string;
@@ -163,16 +164,12 @@ async function resolveIntent(flags: Record<string, string | boolean>, args: stri
     if (inProject && scan) {
       process.stdout.write("\n◇ Detected project:");
       for (const d of scan.detected.slice(0, 5)) process.stdout.write(`\n  · ${d}`);
-      process.stdout.write(`\n\n◇ What should the agent do in this repo? (Enter to accept the proposal)\n  › ${scan.proposedIntent}\n  › `);
-      const chunks: Buffer[] = [];
-      for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-      const text = Buffer.concat(chunks).toString("utf8").trim();
+      const text = await promptLine(
+        `\n\n◇ What should the agent do in this repo? (Enter to accept the proposal)\n  › ${scan.proposedIntent}\n  › `,
+      );
       return text || scan.proposedIntent;
     }
-    process.stdout.write("\n◇ What are you trying to build?\n  › ");
-    const chunks: Buffer[] = [];
-    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-    const text = Buffer.concat(chunks).toString("utf8").trim();
+    const text = await promptLine("\n◇ What are you trying to build?\n  › ");
     if (text) return text;
     fail("No intent provided. Use: proagent init --intent \"...\"");
   }
@@ -567,6 +564,7 @@ async function cmdImprove(args: string[], flags: Record<string, string | boolean
 
 async function main(): Promise<void> {
   const { command, args, flags } = parseArgs(process.argv.slice(2));
+  warnIfStandalone(command, isJson(flags));
 
   switch (command) {
     case "init": return cmdInit(flags, args);

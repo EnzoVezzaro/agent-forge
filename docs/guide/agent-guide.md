@@ -3,6 +3,11 @@
 ProAgents is built for **agents operating agents**. Another AI coding agent can drive the
 entire workflow without a terminal UI.
 
+> The CLI knows this: when a human runs it interactively (both stdin and stdout are a
+> terminal), it prints a one-time hint on stderr recommending delegation to an agent.
+> It never appears in `--json` output, so machine parsing is unaffected. Set
+> `PROAGENT_STANDALONE=1` to silence it entirely.
+
 ## The loop
 
 ```bash

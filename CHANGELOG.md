@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`init` prompt no longer hangs in a real terminal** — the interactive prompts read
+  stdin to EOF (`for await (const chunk of process.stdin)`), which deadlocks on a TTY
+  because terminal stdin never ends. Prompts now resolve on the first line
+  (`src/cli/interactive.ts`), with regression tests simulating a held-open stdin.
+
+### Added
+
+- **Standalone-use warning** — ProAgents is designed to be driven by an AI agent; when
+  run interactively (stdin+stdout TTY, no `--json`, non-informational command) the CLI
+  prints a one-time stderr hint to delegate to an agent with the skill
+  (`npx skills add EnzoVezzaro/proagents`). Silenced by `PROAGENT_STANDALONE=1`.
+
 ## [0.5.2] - 2026-09-15
 
 ### Added
