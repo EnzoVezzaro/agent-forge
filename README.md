@@ -12,6 +12,9 @@ context frameworks and deterministic architecture generation.
 
 `npm i -g proagent` · [Documentation](https://enzovezzaro.github.io/proagents/) · MIT
 
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/EnzoVezzaro)
+[![Ko-fi](https://img.shields.io/badge/Support%20on-Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/enzojuniorvezzaro)
+
 </div>
 
 ---
@@ -141,6 +144,30 @@ hidden randomness — the same session state always yields the same questions, c
 readiness. Runtime capabilities (subagents, delegation, parallelism) are **detected**, never
 assumed, and gaps are reported honestly with CLI fallbacks in the generated skills.
 
+## Benchmarking
+
+Generate → then **prove it works**. The benchmark subsystem evaluates the generated agent
+system — architecture, permissions, tool discipline, artifacts — with **determinism first**:
+
+```
+execute → record trace → deterministic checks (authoritative)
+              → independent judges (gated, rubric-bound, evidence-required)
+              → consensus → adjudication → weighted score (provenance everywhere)
+```
+
+```bash
+proagent benchmark run production-debugger --runs 10   # flaky detection included
+proagent benchmark baseline create <run-id>            # store a baseline
+proagent benchmark regressions <run-id>                # per-metric regression gate
+```
+
+Judges may explain a deterministic failure — never erase it. Every score exposes its raw
+metrics and evidence; judge confidence is tracked separately from scores. A built-in
+reference-agent suite (perfect / unsafe / flaky / cheating / …) tests the benchmark itself:
+the framework must classify GOOD from BAD from CHEATING — and its own tests prove it does
+(105 offline tests, zero network, zero API keys). See the
+[benchmark docs](https://enzovezzaro.github.io/proagents/guide/benchmarking).
+
 ## Development
 
 ```bash
@@ -164,10 +191,11 @@ bun --bun vitepress build docs
 │   ├── cli/            # command surface (--json everywhere)
 │   ├── core/           # engine, session, specification, validation, runtime
 │   ├── context/        # framework API + adapters (filesystem, git, acc) + registry
+│   ├── benchmark/      # deterministic-first benchmarking (evaluators, judges, scoring)
 │   └── output/         # terminal rendering
-├── .agents/skills/     # shipped proagent skill + generated agents land here
+├── .agents/            # shipped proagent skill + benchmark suites + generated agents
 ├── docs/               # vitepress site (deployed to GitHub Pages)
-├── tests/              # vitest suites
+├── tests/              # vitest suites (unit, integration, adversarial, e2e)
 └── examples/           # end-to-end session examples
 ```
 
@@ -175,6 +203,15 @@ bun --bun vitepress build docs
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Good first issues: new
 context-framework adapters, question templates, validation rules, docs translations.
+
+## Support
+
+ProAgents is free, open-source software. If it saves you time, please consider sponsoring:
+
+- ❤ [GitHub Sponsors — EnzoVezzaro](https://github.com/sponsors/EnzoVezzaro)
+- ☕ [Ko-fi — enzojuniorvezzaro](https://ko-fi.com/enzojuniorvezzaro)
+
+Sponsorships fund maintenance, new benchmark suites, and context-framework adapters.
 
 ## License
 

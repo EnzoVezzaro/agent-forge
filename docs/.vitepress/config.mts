@@ -38,6 +38,10 @@ export default defineConfig({
         text: "GitHub",
         link: "https://github.com/EnzoVezzaro/proagents",
       },
+      {
+        text: "❤ Sponsor",
+        link: "https://github.com/sponsors/EnzoVezzaro",
+      },
     ],
     sidebar: {
       "/guide/": [
@@ -55,6 +59,13 @@ export default defineConfig({
             { text: "The question engine", link: "/guide/question-engine" },
             { text: "Agent architecture & graphs", link: "/guide/architecture" },
             { text: "Self-improvement", link: "/guide/self-improvement" },
+          ],
+        },
+        {
+          text: "Benchmarking",
+          items: [
+            { text: "Benchmark system", link: "/guide/benchmarking" },
+            { text: "Testing the benchmark", link: "/guide/benchmark-testing" },
           ],
         },
       ],
@@ -82,7 +93,8 @@ export default defineConfig({
       { icon: "npm", link: "https://www.npmjs.com/package/proagent" },
     ],
     footer: {
-      message: "Released under the MIT License.",
+      message:
+        'Released under the <a href="/proagents/LICENSE.md">MIT License</a> · <a href="https://github.com/sponsors/EnzoVezzaro">❤ Sponsor on GitHub</a> · <a href="https://ko-fi.com/enzojuniorvezzaro">☕ Ko-fi</a>',
       copyright: "Copyright © 2026 ProAgents contributors",
     },
     outline: { level: [2, 3], label: "On this page" },

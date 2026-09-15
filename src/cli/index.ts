@@ -23,6 +23,7 @@ import {
   renderValidation,
 } from "../output/render.js";
 import type { AgentArchitecture, SelfImprovementPolicy } from "../core/types.js";
+import { runBenchmarkCommand } from "./benchmark.js";
 
 interface ParsedArgs {
   command: string;
@@ -72,6 +73,7 @@ Commands:
   agents                    List agents in the generated architecture
   inspect                   Dump full session state (for agents/humans)
   improve                   Show or configure self-improvement
+  benchmark                 Benchmark subcommands (proagent benchmark help)
   help                      Show this help
 
 Global options:
@@ -543,6 +545,7 @@ async function main(): Promise<void> {
     case "agents": return cmdAgents(flags);
     case "inspect": return cmdInspect(flags);
     case "improve": return cmdImprove(args, flags);
+    case "benchmark": return runBenchmarkCommand(args, flags);
     case "--version":
     case "-v":
     case "version":

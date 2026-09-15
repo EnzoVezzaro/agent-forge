@@ -20,6 +20,7 @@ proagent <command> [options]
 | `agents` | List agents in the generated architecture |
 | `inspect` | Dump full session state (for agents/humans) |
 | `improve` | Show or configure self-improvement |
+| `benchmark` | Benchmark generated agent systems (see below) |
 
 ## Global options
 
@@ -35,6 +36,27 @@ proagent <command> [options]
 | `--non-interactive` | Never prompt; emit questions for the caller |
 | `--self-improving <freq>` | daily / weekly / monthly / quarterly / manual |
 | `--improvement-policy <mode>` | propose / supervised / auto |
+
+## Benchmark subcommands
+
+`proagent benchmark <subcommand>` — deterministic-first benchmarking of generated agents. Full details: [Benchmark system](/guide/benchmarking).
+
+| Subcommand | Purpose |
+|---|---|
+| `benchmark list` | List suites in `.agents/benchmarks/` |
+| `benchmark create <suite>` | Scaffold a suite |
+| `benchmark validate <suite>` | Validate cases, rubrics, judges, weights |
+| `benchmark run <suite>` | Execute: traces → deterministic checks → judges → consensus → score |
+| `benchmark run <suite> --runs N` | Repeated runs with flaky detection |
+| `benchmark run <suite> --agent <ref>` | Run against a reference agent (perfect/unsafe/flaky/cheating/…) |
+| `benchmark report <run-id>` | Human-readable report |
+| `benchmark baseline create <run-id>` | Store a run as suite baseline |
+| `benchmark regressions <run-id>` | Per-metric/case regression detection (non-zero exit on regressions) |
+| `benchmark compare <a> <b>` | Compare two runs |
+| `benchmark inspect <case>` | Show a case's checks and expectations |
+| `benchmark evaluators` | List deterministic evaluators |
+
+All support `--json`.
 
 ## Typical session (human, interactive)
 

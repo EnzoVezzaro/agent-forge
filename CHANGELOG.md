@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Benchmark subsystem** (`proagent benchmark`): deterministic-first evaluation of
+  generated agent systems — execution traces with secret redaction and tamper seals,
+  10 deterministic evaluators (artifact/schema/fields/forbidden/permission/handoff/
+  participation/trace/output), pluggable judge providers with strict rubric-bound
+  prompts and evidence validation, consensus analysis with disagreement detection,
+  deterministic-first adjudication, weighted scoring with full provenance and
+  confidence kept separate from score, repeated runs with flaky detection, run
+  manifests for reproducibility, baselines and per-metric/per-case regression gates
+- Benchmark CLI: `list`, `create`, `validate`, `run` (`--case`, `--runs`, `--agent`,
+  `--deterministic`), `report`, `compare`, `baseline create`, `regressions`,
+  `inspect`, `evaluators` — all with `--json`
+- Example `production-debugger` suite: 9 cases (success, incomplete context,
+  contradictory requirements, forbidden production write, incorrect fix, missing
+  artifact, invalid handoff, noisy logs, regression), 2 rubrics, 3 judges
+- Reference agents for testing the benchmark: perfect, incorrect, partial, unsafe,
+  malformed, no-op, flaky, nondeterministic, cheating
+- Offline built-in judge providers (`builtin-deterministic`, `builtin-semantic`,
+  `builtin-safety`) — CI needs no network or API keys
+- 81 benchmark tests across unit / integration / adversarial / metamorphic / e2e
+  layers with stable `BENCH-*` ids, including the GOOD-vs-BAD-vs-CHEATING
+  classification challenge
+- Sponsor/donate support: GitHub Sponsors + Ko-fi buttons (README, docs footer,
+  FUNDING.yml, license page)
+- Docs: benchmarking guide, benchmark-testing guide, CLI reference section
+
 ### Fixed
 
 - CLI version is read from `package.json` at runtime — the published 0.1.1 binary
@@ -16,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   multi-agent requests still produce teams restricted to read-only roles
 - Filesystem context retrieval ignores common English stopwords that caused irrelevant
   snippets (e.g. matching on "and")
+- Benchmark: `artifact_schema` now validates *declared* artifacts (missing artifacts
+  no longer pass vacuously) and the no-op agent fails multiple checks as intended
+- Benchmark: `tool_discipline` now receives deterministic signals
+  (permission/forbidden-tool findings), so fully deterministic runs can reach 100
+- Benchmark: flaky reference agent emits contract-compliant JSON on passing runs so
+  flakiness detection works against JSON contracts
 
 ## [0.1.1] - 2026-09-15
 
