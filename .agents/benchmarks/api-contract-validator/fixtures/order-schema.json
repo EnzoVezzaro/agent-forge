@@ -1,0 +1,13 @@
+{
+  "endpoint": "/orders",
+  "method": "POST",
+  "response_schema": {
+    "type": "object",
+    "required": ["order_id", "status"],
+    "properties": {
+      "order_id": { "type": "string" },
+      "status": { "type": "string" },
+      "total": { "type": "number" }
+    }
+  }
+}

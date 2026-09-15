@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import type {
   AdjudicationResult,
   AgentExecutor,
@@ -168,11 +170,16 @@ export async function runBenchmark(
     let retries = 0;
     let errors = 0;
 
+    // Fixture contents are loaded once per case and shared by executors
+    // (patch style) and evaluators (patch_apply). Missing fixtures become a
+    // deterministic failure, never a silent pass.
+    const fixtures = await loadFixtureContents(suite, testCase);
+
     for (let runIndex = 0; runIndex < runsPerCase; runIndex++) {
       // --- execute ---------------------------------------------------------
       let execution;
       try {
-        execution = await executor.run({ testCase, suite, runIndex, tempDir: `/tmp/proagent-bench-${runId}` });
+        execution = await executor.run({ testCase, suite, runIndex, tempDir: `/tmp/proagent-bench-${runId}`, fixtures });
       } catch {
         hadError = true;
         errors += 1;
@@ -190,7 +197,7 @@ export async function runBenchmark(
       traceHashes.push(traceSeal(trace));
 
       // --- deterministic FIRST ---------------------------------------------
-      const det = runDeterministicChecksFor(testCase, suite, trace, execution.artifacts);
+      const det = runDeterministicChecksFor(testCase, suite, trace, execution.artifacts, fixtures);
       lastDet = det;
       toolCalls += trace.events.filter((e) => e.kind === "tool_call").length;
       retries += trace.events.filter((e) => e.kind === "retry").length;
@@ -299,9 +306,10 @@ function runDeterministicChecksFor(
   suite: BenchmarkSuite,
   trace: ExecutionTrace,
   artifacts: Record<string, string>,
+  fixtures: Record<string, string> = {},
 ): DeterministicResult {
   const findings: DeterministicFinding[] = [];
-  const ctx = { suite, testCase, trace, artifacts };
+  const ctx = { suite, testCase, trace, artifacts, fixtures };
   for (const checkId of testCase.deterministic_checks) {
     findings.push(...getEvaluator(checkId).evaluate(ctx));
   }
@@ -401,6 +409,39 @@ function suiteFixtureHashes(suite: BenchmarkSuite): Record<string, string> {
     for (const f of c.input.fixtures ?? []) out[f] = hashCanonical(f);
   }
   return out;
+}
+
+/**
+ * Load fixture file contents for a case (paths are suite-relative:
+ * .agents/benchmarks/<suiteId>/<fixturePath>).
+ * Returns only the fixtures that exist on disk; absent fixtures surface as
+ * deterministic failures inside patch_apply rather than load-time crashes.
+ */
+export async function loadFixtureContents(
+  suite: BenchmarkSuite,
+  testCase: BenchmarkCase,
+  root?: string,
+): Promise<Record<string, string>> {
+  const wanted = new Set(testCase.input.fixtures ?? []);
+  // Patch expectations also need their base/golden fixtures, even when not
+  // listed in input.fixtures.
+  const patch = testCase.expected.patch;
+  if (patch) {
+    for (const f of [...patch.base, ...patch.golden]) wanted.add(f);
+  }
+  const baseDir =
+    root ??
+    process.env.PROAGENT_BENCH_ROOT ??
+    path.join(process.cwd(), ".agents", "benchmarks", suite.id);
+  const contents: Record<string, string> = {};
+  for (const rel of wanted) {
+    try {
+      contents[rel] = await fs.readFile(path.join(baseDir, rel), "utf8");
+    } catch {
+      // Leave absent; patch_apply reports it deterministically.
+    }
+  }
+  return contents;
 }
 
 function buildManifest(

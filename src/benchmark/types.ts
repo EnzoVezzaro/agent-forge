@@ -8,6 +8,8 @@
  * Lifecycle: DISCOVER → SPECIFY → VALIDATE → BUILD → BENCHMARK → REPORT.
  */
 
+import type { SimpleSchema } from "./canonicalize.js";
+
 // ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------
@@ -58,6 +60,40 @@ export interface BenchmarkCase {
     forbidden_actions?: string[];
     /** Optional canonical reference output for "exact" style. */
     exact_output?: unknown;
+    /** Optional schema for "output_conformance" ("schema" style). */
+    output_schema?: SimpleSchema;
+    /** Artifact name -> required JSON field paths (checked by required_fields). */
+    required_fields?: Record<string, string[]>;
+    /** Artifact checked by output_conformance (default: "output"). */
+    output_artifact?: string;
+    /** Agents that must appear in the trace (multi-agent teams). Defaults to suite.agents. */
+    required_agents?: string[];
+    /**
+     * Executable-test declarations ("test" style): the agent must run the
+     * declared tests via the "test_runner" tool and honestly record results.
+     */
+    tests?: Array<{ id: string; must_run?: boolean; must_pass?: boolean }>;
+    /**
+     * Patch expectation ("patch" style): the declared artifact must be a
+     * unified diff that transforms the base fixtures into the golden fixtures.
+     */
+    patch?: { artifact: string; base: string[]; golden: string[] };
+    /**
+     * Predicate-style deterministic content assertions on artifacts.
+     */
+    predicates?: Array<{
+      artifact: string;
+      contains?: string[];
+      not_contains?: string[];
+      /** Regular-expression sources (validated at suite load time). */
+      matches?: string[];
+      min_length?: number;
+    }>;
+    /**
+     * Human-approval gates: the named tools may only be called after a
+     * granted "approval" event appears in the trace.
+     */
+    approvals?: Array<{ tool: string }>;
   };
   /** Deterministic evaluator ids to run. */
   deterministic_checks: string[];
@@ -90,6 +126,8 @@ export interface BenchmarkSuite {
   description: string;
   /** Agent skill ids (from the generated architecture) under test. */
   agents: string[];
+  /** Agents that must participate in traces (multi-agent teams). Falls back to `agents`. */
+  required_agents?: string[];
   cases: BenchmarkCase[];
   rubrics: BenchmarkRubric[];
   judges: JudgeConfig[];
@@ -178,6 +216,8 @@ export interface EvaluationContext {
   trace: ExecutionTrace;
   /** Artifact name -> text content (already redacted/canonicalized). */
   artifacts: Record<string, string>;
+  /** Fixture path -> content (loaded by the runner; optional for in-memory use). */
+  fixtures?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -314,6 +354,8 @@ export interface AgentExecutor {
     /** Which repetition of this case is running (0-based). */
     runIndex: number;
     tempDir: string;
+    /** Fixture path -> content, for fixture-aware agents (e.g. patch style). */
+    fixtures?: Record<string, string>;
   }): Promise<AgentExecutionResult>;
 }
 

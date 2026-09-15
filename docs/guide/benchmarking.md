@@ -11,18 +11,35 @@ Two principles govern everything:
 1. **Determinism first.** Anything machine-verifiable is checked by code, never by a model. Judges may *explain* a deterministic failure, never *erase* it.
 2. **Every score has provenance.** Raw metric results are always exposed; the weighted aggregate is derived, never opaque. Judge confidence is tracked *separately* from scores.
 
+## Shipped suites
+
+Three reference suites ship in `.agents/benchmarks/` and run fully offline:
+
+| Suite | Styles exercised | Focus |
+|---|---|---|
+| `production-debugger` | artifact, semantic | Incident diagnosis, permission boundaries, handoff integrity |
+| `api-contract-validator` | schema, predicate (no judges) | OpenAPI-style conformance, required fields, secret-leakage detection |
+| `migration-reviewer` | **patch**, **test**, predicate | Destructive-op detection, reviewed-patch reproduction, test honesty |
+| `incident-responder` | multi-agent, approval gates | Team participation, handoff integrity, approval-gated production actions |
+
 ## Quick start
 
 ```bash
 # Scaffold an example suite
 proagent benchmark create production-debugger
 
-# Or use the shipped one — validate, then run it
+# Or use the shipped ones — validate, then run
 proagent benchmark validate production-debugger
 proagent benchmark run production-debugger
 proagent benchmark run production-debugger --runs 10          # flaky detection
 proagent benchmark run production-debugger --case incident-004-forbidden-production-write
 proagent benchmark run production-debugger --agent unsafe-agent  # negative control
+
+# The style suites
+proagent benchmark run api-contract-validator                 # schema-driven, judge-free
+proagent benchmark run migration-reviewer --agent perfect-agent    # patch + test styles
+proagent benchmark run migration-reviewer --agent wrong-patch-agent   # patch_apply fails it
+proagent benchmark run incident-responder --agent responder-team    # multi-agent + approvals
 
 # Reports, baselines, regressions (all support --json)
 proagent benchmark report <run-id>
@@ -120,11 +137,35 @@ execute → record trace → DETERMINISTIC CHECKS FIRST
 | `forbidden_tool_call` | No tool call matches `forbidden_actions` |
 | `permission_compliance` | Every tool call has a *granted* permission check in the trace |
 | `handoff_integrity` | Handoffs reference artifacts that actually exist |
-| `required_agent_participation` | Declared agents participated |
+| `required_agent_participation` | Declared agents participated (case-level `required_agents`, else suite `required_agents`, else `agents`) |
 | `trace_integrity` | Event sequence is monotonic; termination recorded |
 | `output_conformance` | Output matches an exact canonical value or a schema |
+| `test_execution` | **"test" style** — declared tests were run via the `test_runner` tool and results recorded honestly (`must_run`/`must_pass`) |
+| `patch_apply` | **"patch" style** — the recorded unified diff transforms base fixtures into golden fixtures (in-memory, no code execution) |
+| `artifact_predicate` | **"predicate" style** — artifact content satisfies `contains` / `not_contains` / `matches` (regex) / `min_length` |
+| `approval_required` | Tools listed in `approvals` were called only after a granted human-approval event |
 
 Evaluators are **pure**: same trace → same findings, always (verified by a 50-invocation determinism test).
+
+### Structured expectations
+
+Beyond artifact lists, `expected` accepts structured declarations that drive the style evaluators:
+
+```json
+{
+  "expected": {
+    "required_fields": { "report.json": ["verdict", "findings.root_cause"] },
+    "output_artifact": "report.json",
+    "required_agents": ["triage", "comms", "remediation"],
+    "tests": [{ "id": "migration-up-down", "must_run": true, "must_pass": true }],
+    "patch": { "artifact": "reviewed.diff", "base": ["fixtures/a.sql"], "golden": ["fixtures/a.reviewed.sql"] },
+    "predicates": [{ "artifact": "review.md", "contains": ["DROP TABLE"], "matches": ["destructive|unsafe"], "min_length": 40 }],
+    "approvals": [{ "tool": "restart_service" }]
+  }
+}
+```
+
+All of it is validated at suite load time: invalid regex sources, mismatched `base`/`golden` pairs and malformed test entries fail loading with `BENCHMARK_CONFIG_ERROR` before anything runs. Fixtures are loaded **suite-relative** (`.agents/benchmarks/<suite>/fixtures/…`) and their hashes go into the run manifest.
 
 ### Judges
 
@@ -179,4 +220,4 @@ The JSON contains what ran, what passed/failed, the failing evidence, judge disa
 
 - Judge providers that call real LLM APIs are *not* shipped (the interface is); the built-in judges are deterministic fakes suitable for CI and contract testing.
 - Sandboxing delegates to the executor; the benchmark records capabilities but cannot revoke host privileges.
-- `test`/`patch` styles (run real test suites, apply patches) are on the roadmap; `output_conformance` covers exact/schema comparison today.
+- The `patch` style verifies patches against golden fixtures (deterministic, in-memory); a `test` style that **executes** arbitrary test suites on the host (with sandboxing) remains roadmap — recorded-results accountability ships today.

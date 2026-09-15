@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-15
+
+### Added
+
+- **New benchmark styles** (closing the `test`/`patch`/`predicate` style gap):
+  - `test_execution` — declared tests must be run via the `test_runner` tool and results
+    recorded honestly (`must_run`/`must_pass`); skipped or hidden failures fail deterministically
+  - `patch_apply` — recorded unified-diff patches must transform base fixtures into golden
+    fixtures (in-memory LCS diff engine with context-tolerant hunk application, no code execution)
+  - `artifact_predicate` — content assertions on artifacts: `contains` / `not_contains` /
+    `matches` (regex, validated at load time) / `min_length`
+  - `approval_required` — approval-gated tools require a granted human-approval event first
+- **Three new shipped benchmark suites** in `.agents/benchmarks/`:
+  - `api-contract-validator` — 5 schema-driven, judge-free cases (conformance, missing fields,
+    secret leakage, invalid payloads, broken contracts)
+  - `migration-reviewer` — 4 cases over SQL fixtures (destructive-op detection, patch-style
+    reviewed-migration reproduction, test-style verification)
+  - `incident-responder` — 4 multi-agent cases (triage/comms/remediation participation,
+    handoff integrity, approval-gated restart)
+- New reference agents: `patch-agent`, `wrong-patch-agent`, `test-runner-agent`,
+  `test-skipper-agent`, and the case-adaptive multi-agent `responder-team`
+- Structured suite expectations: `required_fields`, `output_schema`, `output_artifact`,
+  `required_agents` (case- and suite-level), `tests`, `patch`, `predicates`, `approvals` —
+  all validated at load time with precise `BENCHMARK_CONFIG_ERROR` messages
+- Suite-relative fixture loading with fixture hashes in the run manifest
+- 35 new tests (BENCH-PATCH/TEST/PRED/APPROVAL/RED/SCORE/SUITE/RUN/SHIPPED), 140 total, all offline
+
+### Fixed
+
+- Secret redaction corrupted benchmark data: an unanchored `pass` pattern redacted the
+  ordinary key `passed` (and test results) to `[REDACTED]`; pattern is now substring-safe
+  (`password|passwd` spelled out) while still matching compounds like `accessToken`
+- Unified-diff parsing created a phantom context line from trailing newlines, breaking
+  round-trip application of generated diffs
+- Weighted metrics that were never evaluated defaulted to 0, silently punishing cases that
+  declared no checks for that metric; they now default to a **vacuous pass (1.0)** with
+  explicit provenance (`semantic_quality` stays 0 — semantic silence is not excellence)
+
 ## [0.2.0] - 2026-09-15
 
 ### Added

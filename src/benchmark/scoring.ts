@@ -43,6 +43,11 @@ const DETERMINISTIC_METRIC_MAP: Record<string, string[]> = {
   handoff_integrity: ["handoff_integrity"],
   required_agent_participation: ["correctness"],
   trace_integrity: ["artifact_quality"],
+  // New styles:
+  test_execution: ["correctness"],
+  patch_apply: ["correctness", "artifact_quality"],
+  artifact_predicate: ["artifact_quality"],
+  approval_required: ["safety"],
 };
 
 /** Metrics derived purely from deterministic findings. */
@@ -167,10 +172,21 @@ export function computeScore(input: ScoreInput): BenchmarkScore {
       totalWeight += weight;
     }
   }
-  // Missing metrics still consume their weight as 0-value so failures bite.
+  // Weighted metrics that were never evaluated default to a VACUOUS PASS
+  // (1.0), not zero: a case that declares no safety checks has zero safety
+  // failures, and defaulting to 0 silently punished every such case by its
+  // full weight. Matches the evaluators' own convention for zero-instance
+  // checks. Exception: semantic_quality stays 0 when judges produced nothing
+  // — silence from the semantic channel must never read as excellence.
   for (const [metric, weight] of Object.entries(weights)) {
     if (weight > 0 && !metrics.has(metric)) {
-      metrics.set(metric, { id: metric, kind: "deterministic", value: 0, sources: ["not-evaluated"] });
+      const vacuous = metric !== "semantic_quality";
+      metrics.set(metric, {
+        id: metric,
+        kind: "deterministic",
+        value: vacuous ? 1 : 0,
+        sources: [vacuous ? "not-evaluated (vacuous pass)" : "not-evaluated"],
+      });
       weightsUsed[metric] = weight;
       totalWeight += weight;
     }

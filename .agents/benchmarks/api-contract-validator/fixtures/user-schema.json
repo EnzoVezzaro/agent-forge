@@ -1,0 +1,15 @@
+{
+  "endpoint": "/users/{id}",
+  "method": "GET",
+  "response_schema": {
+    "type": "object",
+    "required": ["id", "email", "display_name", "created_at"],
+    "properties": {
+      "id": { "type": "string" },
+      "email": { "type": "string" },
+      "display_name": { "type": "string" },
+      "created_at": { "type": "string" }
+    }
+  },
+  "forbidden_response_fields": ["password_hash", "internal_notes"]
+}

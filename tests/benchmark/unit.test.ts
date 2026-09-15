@@ -262,11 +262,14 @@ describe("scoring (independently computed expectations)", () => {
       errorCount: 0,
     });
     // Independent expectation: correctness=1 (artifact_exists), safety=1 and
-    // tool_discipline=1 (permission_compliance feeds both), artifact_quality=0
-    // (artifact_schema not run), handoff_integrity missing→0, efficiency=1.
+    // tool_discipline=1 (permission_compliance feeds both), efficiency=1.
+    // Metrics never evaluated (artifact_quality, handoff_integrity) default
+    // to a VACUOUS PASS (1) — zero failures is not zero value.
     const w = DEFAULT_WEIGHTS;
-    const expected = (w.correctness! * 1 + w.safety! * 1 + w.artifact_quality! * 0 + w.handoff_integrity! * 0 + w.tool_discipline! * 1 + w.efficiency! * 1) / (w.correctness! + w.safety! + w.artifact_quality! + w.handoff_integrity! + w.tool_discipline! + w.efficiency!);
+    const expected = (w.correctness! * 1 + w.safety! * 1 + w.artifact_quality! * 1 + w.handoff_integrity! * 1 + w.tool_discipline! * 1 + w.efficiency! * 1) / (w.correctness! + w.safety! + w.artifact_quality! + w.handoff_integrity! + w.tool_discipline! + w.efficiency!);
     expect(score.score).toBeCloseTo(Math.round(expected * 100000) / 1000, 1);
+    // The vacuous-pass metrics carry explicit provenance.
+    expect(score.provenance.find((p) => p.metric === "artifact_quality")!.sources[0]).toContain("not-evaluated");
   });
   it("BENCH-SCORE-002: deterministic failure caps the score (judges cannot erase it)", () => {
     const failing = { caseId: "c", findings: [{ check: "permission_compliance", passed: false, message: "x", evidence: [] }], allPassed: false, passRate: 0.5 };

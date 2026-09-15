@@ -69,7 +69,11 @@ export function normalizeText(text: string): string {
 // Secret redaction
 // ---------------------------------------------------------------------------
 
-const SECRET_KEYS = /pass(word|wd)?|secret|token|api[-_]?key|credential|authorization|cookie|private[-_]?key|bearer/i;
+// Substring semantics, but bare "pass" must never match on its own — an
+// unanchored /pass/ once redacted benchmark test results ("passed") into
+// "[REDACTED]". Full words like "token" still match compounds such as
+// "accessToken".
+const SECRET_KEYS = /password|passwd|secret|token|api[-_]?key|credential|authorization|cookie|private[-_]?key|bearer/i;
 
 const SECRET_VALUE_PATTERNS: RegExp[] = [
   /\b(?:ghp|gho|github_pat|sk|npm_)_[A-Za-z0-9]{16,}\b/g,

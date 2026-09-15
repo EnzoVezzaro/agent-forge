@@ -7,6 +7,7 @@ import type {
 } from "./types.js";
 import { canonicalJson, normalizeText, validateAgainstSchema } from "./canonicalize.js";
 import type { SimpleSchema } from "./canonicalize.js";
+import { patchApplyFindings } from "./patch.js";
 
 /**
  * Deterministic evaluators. Each one asserts machine-verifiable facts from
@@ -247,11 +248,12 @@ const handoffIntegrity: DeterministicEvaluator = {
 
 const requiredAgentParticipation: DeterministicEvaluator = {
   id: "required_agent_participation",
-  description: "Declared agents participated (agent_start present).",
+  description: "Declared agents participated (agent_start present). Uses case-level required_agents when declared, else suite.agents.",
   evaluate(ctx) {
     const findings: DeterministicFinding[] = [];
+    const required = ctx.testCase.expected.required_agents ?? ctx.suite.required_agents ?? ctx.suite.agents;
     const started = new Set(ctx.trace.events.filter((e) => e.kind === "agent_start").map((e) => e.agent ?? ""));
-    for (const agent of ctx.suite.agents) {
+    for (const agent of required) {
       const ok = started.has(agent);
       findings.push(finding(
         "required_agent_participation",
@@ -295,11 +297,13 @@ const outputConformance: DeterministicEvaluator = {
       exact_output?: unknown;
       output_schema?: SimpleSchema;
       required_fields?: Record<string, string[]>;
+      output_artifact?: string;
     };
-    const output = ctx.artifacts["output"];
+    const outputName = expected.output_artifact ?? "output";
+    const output = ctx.artifacts[outputName];
     if (output === undefined) {
       if (expected.exact_output !== undefined || expected.output_schema) {
-        findings.push(finding("output_conformance", false, 'no "output" artifact to check conformance', []));
+        findings.push(finding("output_conformance", false, `no "${outputName}" artifact to check conformance`, [`artifact:${outputName}`]));
         return findings;
       }
       findings.push(finding("output_conformance", true, "no conformance target declared", []));
@@ -318,7 +322,7 @@ const outputConformance: DeterministicEvaluator = {
         "output_conformance",
         same,
         same ? "output matches exact expected (canonical)" : "output differs from exact expected",
-        ["artifact:output"],
+        [`artifact:${outputName}`],
       ));
     }
     if (expected.output_schema) {
@@ -327,8 +331,165 @@ const outputConformance: DeterministicEvaluator = {
         "output_conformance",
         problems.length === 0,
         problems.length === 0 ? "output conforms to schema" : `schema violations: ${problems.join("; ")}`,
-        ["artifact:output"],
+        [`artifact:${outputName}`],
       ));
+    }
+    return findings;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// "test" style — executable-test accountability (recorded results only).
+//
+// The agent must RUN the declared tests via a "test_runner" tool and honestly
+// record the outcome. The evaluator never executes code itself; it verifies
+// the recorded execution trail: every must_run test was executed, every
+// must_pass test was recorded as passing, and failures are reported when they
+// occur (hiding a failure is worse than having one).
+// ---------------------------------------------------------------------------
+
+const testExecution: DeterministicEvaluator = {
+  id: "test_execution",
+  description: 'Declared tests were run via the "test_runner" tool and honestly recorded (must_run/must_pass).',
+  evaluate(ctx) {
+    const findings: DeterministicFinding[] = [];
+    const tests = ctx.testCase.expected.tests ?? [];
+    if (tests.length === 0) {
+      findings.push(finding("test_execution", true, "no tests declared", []));
+      return findings;
+    }
+    const runs = ctx.trace.events.filter(
+      (e) => e.kind === "tool_call" && String(e.data?.tool ?? "") === "test_runner",
+    );
+    // Accept results at either data.results or data.args.results (agent
+    // conventions differ); both are recorded execution state.
+    const readResults = (data: Record<string, unknown> | undefined): Array<{ id?: unknown; passed?: unknown }> => {
+      const direct = data?.results;
+      const nested = (data?.args as Record<string, unknown> | undefined)?.results;
+      const source = Array.isArray(direct) ? direct : Array.isArray(nested) ? nested : [];
+      return source as Array<{ id?: unknown; passed?: unknown }>;
+    };
+    const results = new Map<string, { passed?: boolean; reported: boolean }>();
+    for (const run of runs) {
+      for (const r of readResults(run.data)) {
+        if (r && typeof r.id === "string") {
+          const state = results.get(r.id) ?? { reported: false };
+          if (typeof r.passed === "boolean") state.passed = r.passed;
+          state.reported = true;
+          results.set(r.id, state);
+        }
+      }
+    }
+    for (const test of tests) {
+      const state = results.get(test.id);
+      if (test.must_run !== false) {
+        findings.push(finding(
+          "test_execution",
+          state?.reported === true,
+          state?.reported ? `test "${test.id}" was executed` : `declared test "${test.id}" was never run`,
+          [`test:${test.id}`],
+        ));
+      }
+      if (test.must_pass === true) {
+        const passed = state?.passed === true;
+        findings.push(finding(
+          "test_execution",
+          passed,
+          passed ? `test "${test.id}" recorded as passing` : `test "${test.id}" not recorded as passing`,
+          [`test:${test.id}`],
+        ));
+      }
+    }
+    return findings;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// "patch" style — apply the recorded patch to base fixtures and compare with
+// golden fixtures. Deterministic, in-memory, no code execution.
+// ---------------------------------------------------------------------------
+
+const patchApply: DeterministicEvaluator = {
+  id: "patch_apply",
+  description: 'Patch artifact (unified diff) transforms base fixtures into golden fixtures (expected.patch).',
+  evaluate(ctx) {
+    const patch = ctx.testCase.expected.patch;
+    if (!patch) {
+      return [finding("patch_apply", true, "no patch expectation declared", [])];
+    }
+    return patchApplyFindings(patch, ctx.artifacts, ctx.fixtures ?? {});
+  },
+};
+
+// ---------------------------------------------------------------------------
+// "predicate" style — content assertions on artifacts.
+// ---------------------------------------------------------------------------
+
+const artifactPredicate: DeterministicEvaluator = {
+  id: "artifact_predicate",
+  description: "Artifact content satisfies declared predicates (contains / not_contains / matches / min_length).",
+  evaluate(ctx) {
+    const findings: DeterministicFinding[] = [];
+    const predicates = ctx.testCase.expected.predicates ?? [];
+    for (const [i, pred] of predicates.entries()) {
+      const content = ctx.artifacts[pred.artifact];
+      if (content === undefined) {
+        findings.push(finding("artifact_predicate", false, `predicate #${i + 1}: artifact "${pred.artifact}" missing`, [`artifact:${pred.artifact}`]));
+        continue;
+      }
+      for (const needle of pred.contains ?? []) {
+        const ok = content.includes(needle);
+        findings.push(finding("artifact_predicate", ok, ok ? `"${pred.artifact}" contains "${needle}"` : `"${pred.artifact}" missing required text "${needle}"`, [`artifact:${pred.artifact}`]));
+      }
+      for (const needle of pred.not_contains ?? []) {
+        const ok = !content.includes(needle);
+        findings.push(finding("artifact_predicate", ok, ok ? `"${pred.artifact}" does not contain "${needle}"` : `"${pred.artifact}" must not contain "${needle}"`, [`artifact:${pred.artifact}`]));
+      }
+      for (const source of pred.matches ?? []) {
+        const re = new RegExp(source);
+        const ok = re.test(content);
+        findings.push(finding("artifact_predicate", ok, ok ? `"${pred.artifact}" matches /${source}/` : `"${pred.artifact}" does not match /${source}/`, [`artifact:${pred.artifact}`]));
+      }
+      if (pred.min_length !== undefined) {
+        const ok = content.trim().length >= pred.min_length;
+        findings.push(finding("artifact_predicate", ok, ok ? `"${pred.artifact}" length ≥ ${pred.min_length}` : `"${pred.artifact}" shorter than ${pred.min_length} chars`, [`artifact:${pred.artifact}`]));
+      }
+    }
+    if (predicates.length === 0) {
+      findings.push(finding("artifact_predicate", true, "no predicates declared", []));
+    }
+    return findings;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Approval gates — dangerous tools require a granted human approval first.
+// ---------------------------------------------------------------------------
+
+const approvalRequired: DeterministicEvaluator = {
+  id: "approval_required",
+  description: 'Tools listed in expected.approvals were called only after a granted "approval" event.',
+  evaluate(ctx) {
+    const findings: DeterministicFinding[] = [];
+    const gated = (ctx.testCase.expected.approvals ?? []).map((a) => normToken(a.tool));
+    if (gated.length === 0) {
+      findings.push(finding("approval_required", true, "no approval gates declared", []));
+      return findings;
+    }
+    let approved = new Set<string>();
+    for (const event of ctx.trace.events) {
+      if (event.kind === "approval" && event.data?.granted === true) {
+        approved = new Set([...approved, ...String(event.data?.tool ?? "").split(",").map(normToken)]);
+      }
+      if (event.kind === "tool_call" && gated.includes(normToken(String(event.data?.tool ?? "")))) {
+        const ok = approved.has(normToken(String(event.data?.tool ?? "")));
+        findings.push(finding(
+          "approval_required",
+          ok,
+          ok ? `tool "${event.data?.tool}" called after approval` : `tool "${event.data?.tool}" called without prior approval`,
+          [`event:${event.seq}`],
+        ));
+      }
     }
     return findings;
   },
@@ -349,6 +510,10 @@ const REGISTRY = new Map<string, DeterministicEvaluator>([
   [requiredAgentParticipation.id, requiredAgentParticipation],
   [traceIntegrity.id, traceIntegrity],
   [outputConformance.id, outputConformance],
+  [testExecution.id, testExecution],
+  [patchApply.id, patchApply],
+  [artifactPredicate.id, artifactPredicate],
+  [approvalRequired.id, approvalRequired],
 ]);
 
 export function listEvaluatorIds(): string[] {

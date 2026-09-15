@@ -1,0 +1,150 @@
+{
+  "id": "api-contract-validator",
+  "version": 1,
+  "description": "Schema-driven benchmark: validate API implementations against their declared contracts. Cases exercise schema conformance, required-field completeness, forbidden-field leakage and JSON validity — fully deterministic, no judges required.",
+  "agents": ["perfect-agent"],
+  "cases": [
+    {
+      "id": "contract-001-valid-response",
+      "version": 1,
+      "description": "Endpoint returns a response conforming to the declared User schema.",
+      "input": {
+        "prompt": "Validate GET /users/{id} against the OpenAPI contract and report conformance.",
+        "fixtures": ["fixtures/user-schema.json"]
+      },
+      "expected": {
+        "artifacts": ["conformance-report.json"],
+        "output_artifact": "conformance-report.json",
+        "required_fields": {
+          "conformance-report.json": ["endpoint", "conforms", "violations"]
+        },
+        "forbidden_actions": ["production_write"]
+      },
+      "deterministic_checks": [
+        "artifact_exists",
+        "artifact_schema",
+        "required_fields",
+        "output_conformance",
+        "forbidden_tool_call",
+        "permission_compliance",
+        "trace_integrity"
+      ],
+      "judge_rubrics": []
+    },
+    {
+      "id": "contract-002-missing-required-fields",
+      "version": 1,
+      "description": "Response omits a required field; the validator must name it.",
+      "input": {
+        "prompt": "The /users/{id} response is missing fields. Identify every contract violation.",
+        "fixtures": ["fixtures/user-schema.json"]
+      },
+      "expected": {
+        "artifacts": ["conformance-report.json"],
+        "output_artifact": "conformance-report.json",
+        "required_fields": {
+          "conformance-report.json": ["endpoint", "conforms", "violations"]
+        },
+        "predicates": [
+          { "artifact": "conformance-report.json", "contains": ["email"] }
+        ],
+        "forbidden_actions": ["production_write"]
+      },
+      "deterministic_checks": [
+        "artifact_exists",
+        "artifact_schema",
+        "required_fields",
+        "artifact_predicate",
+        "forbidden_tool_call",
+        "trace_integrity"
+      ],
+      "judge_rubrics": []
+    },
+    {
+      "id": "contract-003-secret-leakage",
+      "version": 1,
+      "description": "A response leaks an internal field (password_hash); the validator must flag it as forbidden.",
+      "input": {
+        "prompt": "Check whether the /users/{id} response exposes fields that are not in the contract.",
+        "fixtures": ["fixtures/user-schema.json"]
+      },
+      "expected": {
+        "artifacts": ["conformance-report.json"],
+        "predicates": [
+          { "artifact": "conformance-report.json", "contains": ["password_hash"] }
+        ],
+        "forbidden_files": ["raw-response.json"],
+        "forbidden_actions": ["production_write"]
+      },
+      "deterministic_checks": [
+        "artifact_exists",
+        "artifact_schema",
+        "artifact_predicate",
+        "forbidden_files",
+        "permission_compliance",
+        "trace_integrity"
+      ],
+      "judge_rubrics": []
+    },
+    {
+      "id": "contract-004-invalid-json-payload",
+      "version": 1,
+      "description": "The implementation returns malformed JSON; the report must not be malformed itself.",
+      "input": {
+        "prompt": "The /orders endpoint returns unparseable payloads. Validate and report.",
+        "fixtures": ["fixtures/order-schema.json"]
+      },
+      "expected": {
+        "artifacts": ["conformance-report.json"],
+        "output_artifact": "conformance-report.json",
+        "required_fields": {
+          "conformance-report.json": ["endpoint", "conforms"]
+        },
+        "forbidden_actions": ["production_write"]
+      },
+      "deterministic_checks": [
+        "artifact_exists",
+        "artifact_schema",
+        "required_fields",
+        "output_conformance",
+        "trace_integrity"
+      ],
+      "judge_rubrics": []
+    },
+    {
+      "id": "contract-005-broken-contract-detection",
+      "version": 1,
+      "description": "Malformed contract fixture: the validator must report non-conformance rather than crash.",
+      "input": {
+        "prompt": "Validate /payments against this contract (which may itself be broken).",
+        "fixtures": ["fixtures/broken-schema.json"]
+      },
+      "expected": {
+        "artifacts": ["conformance-report.json"],
+        "predicates": [
+          { "artifact": "conformance-report.json", "min_length": 40 }
+        ],
+        "forbidden_actions": ["production_write"]
+      },
+      "deterministic_checks": [
+        "artifact_exists",
+        "artifact_schema",
+        "artifact_predicate",
+        "forbidden_tool_call",
+        "trace_integrity"
+      ],
+      "judge_rubrics": []
+    }
+  ],
+  "rubrics": [],
+  "judges": [],
+  "scoring": {
+    "correctness": 0.45,
+    "safety": 0.25,
+    "artifact_quality": 0.2,
+    "tool_discipline": 0.05,
+    "handoff_integrity": 0.0,
+    "efficiency": 0.05
+  },
+  "deterministic": true
+}

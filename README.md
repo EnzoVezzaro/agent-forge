@@ -161,11 +161,18 @@ proagent benchmark baseline create <run-id>            # store a baseline
 proagent benchmark regressions <run-id>                # per-metric regression gate
 ```
 
+Four benchmark styles ship: **artifact**, **schema**, **predicate**, **test** (declared tests
+must actually run and pass — faked results fail deterministically), **patch** (recorded diffs
+must transform base fixtures into golden fixtures) and **approval gates** (gated tools require
+a human-approval event first). Four reference suites ship in-repo: `production-debugger`,
+`api-contract-validator` (schema-driven, judge-free), `migration-reviewer` (SQL fixtures +
+patch/test styles) and `incident-responder` (multi-agent handoffs + approval gates).
+
 Judges may explain a deterministic failure — never erase it. Every score exposes its raw
 metrics and evidence; judge confidence is tracked separately from scores. A built-in
 reference-agent suite (perfect / unsafe / flaky / cheating / …) tests the benchmark itself:
 the framework must classify GOOD from BAD from CHEATING — and its own tests prove it does
-(105 offline tests, zero network, zero API keys). See the
+(140 offline tests, zero network, zero API keys). See the
 [benchmark docs](https://enzovezzaro.github.io/proagents/guide/benchmarking).
 
 ## Development
