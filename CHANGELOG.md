@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-15
+
+### Added
+
+- README: **Working in an existing repo** — running `proagent init` at the root of an
+  existing codebase (grounded questions via `--context`, the interview loop, scoped context
+  retrieval, `spec`/`validate`/`build` in place), what the session reads deterministically
+  from the repo, and the GUI equivalent (`Build a crew → Start from your repo`)
+
 ## [0.5.0] - 2026-09-15
 
 ### Added
