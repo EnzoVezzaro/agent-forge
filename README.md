@@ -10,7 +10,7 @@ An open-source agentic CLI + Agent Skill that turns *"I want an agent that debug
 into a validated, buildable multi-agent system — through progressive questioning, pluggable
 context frameworks and deterministic architecture generation.
 
-`npm i -g proagent` · [Documentation](https://proagents-dev.github.io/proagents/) · MIT
+`npm i -g proagent` · [Documentation](https://enzovezzaro.github.io/proagents/) · MIT
 
 </div>
 
@@ -88,7 +88,7 @@ proagent build --json
 The repo ships a ready-made skill that teaches any agent this loop:
 
 ```bash
-npx skills add proagents-dev/proagents
+npx skills add EnzoVezzaro/proagents
 ```
 
 ## What gets generated
@@ -118,7 +118,7 @@ before anything is generated. Markdown informs; runtime boundaries enforce.
 | `agents-code-context` | optional | [ACC](https://www.npmjs.com/package/acc-code-context) — architecture graph, dependencies, impact; used only if installed |
 | *yours* | external | `--context-framework ./my-framework.mjs` or a git URL — no core changes needed |
 
-See [writing an adapter](https://proagents-dev.github.io/proagents/context/adapters).
+See [writing an adapter](https://enzovezzaro.github.io/proagents/context/adapters).
 
 ## Architecture
 
@@ -144,7 +144,7 @@ assumed, and gaps are reported honestly with CLI fallbacks in the generated skil
 ## Development
 
 ```bash
-git clone https://github.com/proagents-dev/proagents
+git clone https://github.com/EnzoVezzaro/proagents
 cd proagents
 npm install
 

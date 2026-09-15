@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "ProAgents contributors",
-  "homepage": "https://github.com/proagents-dev/proagents#readme",
+  "homepage": "https://github.com/EnzoVezzaro/proagents#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/proagents-dev/proagents.git"
+    "url": "git+https://github.com/EnzoVezzaro/proagents.git"
   },
   "bugs": {
-    "url": "https://github.com/proagents-dev/proagents/issues"
+    "url": "https://github.com/EnzoVezzaro/proagents/issues"
   },
   "keywords": [
     "agent",

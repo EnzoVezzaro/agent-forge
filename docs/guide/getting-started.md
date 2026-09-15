@@ -62,7 +62,7 @@ The repo ships a ready-made skill at `.agents/skills/proagent/`:
 
 ```bash
 # any agent, one command:
-npx skills add proagents-dev/proagents
+npx skills add EnzoVezzaro/proagents
 ```
 
 This installs into 70+ agents (Claude Code, Cursor, Codex, Copilot, Cline, ...). The skill

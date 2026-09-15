@@ -36,7 +36,7 @@ export default defineConfig({
       { text: "npm", link: "https://www.npmjs.com/package/proagent" },
       {
         text: "GitHub",
-        link: "https://github.com/proagents-dev/proagents",
+        link: "https://github.com/EnzoVezzaro/proagents",
       },
     ],
     sidebar: {
@@ -78,7 +78,7 @@ export default defineConfig({
       ],
     },
     socialLinks: [
-      { icon: "github", link: "https://github.com/proagents-dev/proagents" },
+      { icon: "github", link: "https://github.com/EnzoVezzaro/proagents" },
       { icon: "npm", link: "https://www.npmjs.com/package/proagent" },
     ],
     footer: {

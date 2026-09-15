@@ -6,7 +6,7 @@ Thanks for helping forge better agents! This project follows one rule above all:
 ## Development setup
 
 ```bash
-git clone https://github.com/proagents-dev/proagents
+git clone https://github.com/EnzoVezzaro/proagents
 cd proagents
 npm install
 npm run build && npm test
