@@ -26,6 +26,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: npm ci
       - run: bun --bun vitepress build docs
+      # Git-backed catalog data → served at /.marketplace/* (copied from the source of truth)
+      - run: mkdir -p docs/.vitepress/dist/.marketplace/items && cp .marketplace/catalog.json docs/.vitepress/dist/.marketplace/ && cp .marketplace/items/*.json docs/.vitepress/dist/.marketplace/items/
       # Marketplace SPA → docs/.vitepress/dist/app (Vite base is /proagents/app/)
       - run: npm ci --prefix web
       - run: npm run build --prefix web
