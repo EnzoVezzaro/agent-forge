@@ -109,7 +109,8 @@ export function BuilderPage(props: { ctx: AppCtx }): React.JSX.Element {
     setPublishState("Publishing… (commits items/<id>.json + catalog.json via the GitHub API)");
     try {
       const { putRepoFile, getRepoFile } = await import("../../github.js");
-      const repo = "EnzoVezzaro/proagents";
+      const repo =
+        (import.meta.env.VITE_MARKET_REPO as string | undefined) ?? "EnzoVezzaro/proagents";
       const itemPath = `.marketplace/items/${crew.id}.json`;
       const existing = await getRepoFile(settings.githubToken, repo, itemPath, "main");
       await putRepoFile(settings.githubToken, repo, itemPath, JSON.stringify(crew, null, 2) + "\n", `crew: publish ${crew.id}@${crew.version}`, existing?.sha ?? null, "main");

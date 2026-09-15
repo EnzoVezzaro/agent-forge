@@ -12,6 +12,7 @@ docs/.vitepress/cache/
 # Environment / secrets
 .env
 .env.*
+!.env.example
 
 # OS / editor
 .DS_Store

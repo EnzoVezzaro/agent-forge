@@ -7,6 +7,7 @@ import { installCrew, planInstall, mergeMcpConfig, crewSkillMarkdown } from "../
 import { readCatalogRemote, fetchCrewDefinition, publishCrew } from "../crew/registry.js";
 import type { GitHubCommitTarget } from "../crew/registry.js";
 import { jsonOut } from "./json.js";
+import { getEnvConfig } from "../env.js";
 
 function fail(message: string): never {
   console.error(`error: ${message}`);
@@ -15,14 +16,16 @@ function fail(message: string): never {
 
 const DEFAULT_REPO = "EnzoVezzaro/proagents";
 
-/** --repo owner/name, --ref branch, --token gh token (or GITHUB_TOKEN env). */
+/** --repo owner/name, --ref branch, --token gh token (or GITHUB_TOKEN env / .env). */
 function remoteOpts(flags: Record<string, string | boolean>): { repo: string; ref: string; token?: string } {
-  const repo = typeof flags.repo === "string" && flags.repo ? flags.repo : process.env.PROAGENT_MARKET_REPO ?? DEFAULT_REPO;
+  const env = getEnvConfig();
+  const repo =
+    (typeof flags.repo === "string" && flags.repo) ||
+    (env.marketRepo ?? DEFAULT_REPO);
   const ref = typeof flags.ref === "string" && flags.ref ? flags.ref : "main";
   const token =
     (typeof flags.token === "string" && flags.token) ||
-    process.env.GITHUB_TOKEN ||
-    process.env.GH_TOKEN ||
+    env.githubToken ||
     undefined;
   return { repo, ref, token };
 }
@@ -43,6 +46,8 @@ export async function runCrewCommand(args: string[], flags: Record<string, strin
       return crewInstall(rest[0], flags, json);
     case "publish":
       return crewPublish(rest[0], flags, json);
+    case "checkout":
+      return crewCheckout(rest[0], flags, json);
     case undefined:
     case "help":
       printCrewHelp();
@@ -71,6 +76,9 @@ Subcommands:
     --dry-run               Show the install plan without writing
   publish <file.json>       Publish a crew definition to the marketplace catalog
     --repo / --ref / --token (required token with contents:write)
+  checkout <id|file.json>   Mint a Stripe Payment Link for a paid crew (local only)
+    --amount <cents>        Override the crew's price in cents
+    Uses STRIPE_SECRET_KEY from the environment or .env (never shipped to web)
 
 The one-liner: install a crew and everything it needs into the repo you run:
 
@@ -187,8 +195,8 @@ async function crewPublish(file: string | undefined, flags: Record<string, strin
   if (problems.length > 0) fail(`refusing to publish invalid crew: ${problems.join("; ")}`);
 
   const { repo, ref } = remoteOpts(flags);
-  const token = (typeof flags.token === "string" && flags.token) || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-  if (!token) fail("publish requires a token with contents:write (--token or GITHUB_TOKEN)");
+  const token = (typeof flags.token === "string" && flags.token) || getEnvConfig().githubToken;
+  if (!token) fail("publish requires a token with contents:write (--token, GITHUB_TOKEN, or a .env file)");
 
   const target: GitHubCommitTarget = { repo, branch: ref, token };
   const paths = await publishCrew(crew, target);
@@ -197,4 +205,55 @@ async function crewPublish(file: string | undefined, flags: Record<string, strin
   console.log(`  + ${paths.itemPath}`);
   console.log(`  ~ ${paths.catalogPath}`);
   console.log("  (GitHub Pages serves the catalog after the next Pages build)");
+}
+
+/**
+ * Mint a Stripe Payment Link for a paid crew, entirely locally: the secret key
+ * never leaves this process (env/.env), and only the resulting checkout URL is
+ * ever committed to the catalog. Free crews have nothing to mint.
+ */
+async function crewCheckout(idOrFile: string | undefined, flags: Record<string, string | boolean>, json: boolean): Promise<void> {
+  if (!idOrFile) fail("Usage: proagent crew checkout <id|file.json>");
+  const crew = await resolveCrew(idOrFile, flags);
+  const problems = crewProblems(crew);
+  if (problems.length > 0) fail(`crew failed validation: ${problems.join("; ")}`);
+
+  const amount =
+    (typeof flags.amount === "string" && Number(flags.amount)) ||
+    crew.pricing?.amount;
+  if (!amount || amount <= 0) {
+    if (json) return jsonOut({ status: "ok", crew: crew.id, pricing: "free", checkoutUrl: null });
+    console.log(`Crew "${crew.id}" is free — no checkout needed.`);
+    return;
+  }
+
+  const secret = getEnvConfig().stripeSecretKey;
+  if (!secret) fail("crew checkout requires STRIPE_SECRET_KEY (environment or .env) — never embed it in the web app");
+
+  const body = new URLSearchParams({
+    "line_items[0][price_data][currency]": crew.pricing?.currency ?? "usd",
+    "line_items[0][price_data][unit_amount]": String(amount),
+    "line_items[0][price_data][product_data][name]": `${crew.name} (ProAgents crew)`,
+    "line_items[0][quantity]": "1",
+    "metadata[crew_id]": crew.id,
+    "metadata[crew_version]": crew.version,
+  });
+  const res = await fetch("https://api.stripe.com/v1/payment_links", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${secret}`,
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    fail(`Stripe payment link creation failed: HTTP ${res.status} ${text.slice(0, 200)}`);
+  }
+  const link = (await res.json()) as { id: string; url: string };
+  if (json) return jsonOut({ status: "ok", crew: crew.id, amount, currency: crew.pricing?.currency ?? "usd", paymentLinkId: link.id, checkoutUrl: link.url });
+  console.log(`✓ Payment link for ${crew.id} ($${(amount / 100).toFixed(2)}):`);
+  console.log(`  ${link.url}`);
+  console.log("");
+  console.log("Commit this URL as the crew's checkoutUrl — the secret key never leaves this machine.");
 }

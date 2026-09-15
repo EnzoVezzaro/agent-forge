@@ -24,6 +24,13 @@ export interface AppSettings {
 
 const KEY = "proagents-marketplace-settings-v1";
 
+/** Build-time defaults from VITE_* env vars (see .env.example); localStorage wins. */
+function envDefaults(): Partial<AppSettings> {
+  return {
+    clerkPublishableKey: (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined) ?? "",
+  };
+}
+
 export const DEFAULT_SETTINGS: AppSettings = {
   provider: { provider: "anthropic", model: "claude-sonnet-4-5", apiKey: "" },
   githubToken: "",
@@ -35,13 +42,14 @@ export function loadSettings(): AppSettings {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    const defaults = envDefaults();
     return {
       provider: { ...DEFAULT_SETTINGS.provider, ...(parsed.provider ?? {}) },
       githubToken: parsed.githubToken ?? "",
-      clerkPublishableKey: parsed.clerkPublishableKey ?? "",
+      clerkPublishableKey: parsed.clerkPublishableKey ?? defaults.clerkPublishableKey ?? "",
     };
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...envDefaults() };
   }
 }
 

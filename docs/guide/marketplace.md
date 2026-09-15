@@ -96,6 +96,39 @@ and stores only its URL in the crew definition — static hosting never touches 
 secret key, and checkout happens on Stripe's domain. The seed catalog's paid crew uses a
 sandbox test link; live mode is a URL swap.
 
+Mint one locally with the CLI (reads `STRIPE_SECRET_KEY` from the environment or `.env`):
+
+```bash
+proagent crew checkout pr-review-gate
+# ✓ Payment link for pr-review-gate ($19.00):
+#   https://buy.stripe.com/test_…
+```
+
+Commit the URL as the crew's `checkoutUrl`. The secret key never leaves the machine —
+the deployed SPA only ever opens committed links.
+
+## Environment & secrets (.env)
+
+All credentials live in a gitignored **`.env`** at the project root; **`.env.example`**
+is the committed template. Copy it and fill in real values:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Used by | Notes |
+|---|---|---|
+| `PROAGENT_MARKET_REPO` | CLI, SPA build | Catalog repo (default `EnzoVezzaro/proagents`) |
+| `GITHUB_TOKEN` | CLI | `contents:write` token for `crew publish` / browser-less install |
+| `STRIPE_SECRET_KEY` | CLI only | Mints payment links; **never** embedded in the web bundle |
+| `CLERK_SECRET_KEY` | server only | ⚠️ `sk_…` — never prefix with `VITE_` |
+| `VITE_*` | SPA build | Public values only (`VITE_GITHUB_APP_CLIENT_ID`, `VITE_MARKET_REPO`, `VITE_CLERK_PUBLISHABLE_KEY`) |
+
+The rule: **a variable named `VITE_*` is public** and gets embedded in the deployed
+bundle; everything else stays local. Resolution order: real environment variables →
+`.env.local` → `.env` → `~/.proagent/.env` (user-global fallback for a globally-installed
+CLI). Project files always outrank the global one, and CI secrets beat everything.
+
 ## Adding a listing to the catalog
 
 Either publish from the GUI, or by hand/CLI:

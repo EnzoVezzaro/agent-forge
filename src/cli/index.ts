@@ -2,6 +2,12 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { loadDotEnv } from "../env.js";
+
+// .env.local / .env are loaded before anything else (real env always wins),
+// so commands like `crew publish` and `crew checkout` pick up local secrets
+// without exporting anything.
+loadDotEnv();
 
 // Single source of truth for the version: the package manifest.
 const VERSION: string =

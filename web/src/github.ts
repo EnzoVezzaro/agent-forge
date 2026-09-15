@@ -7,7 +7,13 @@
  * The user opens github.com/login/device, enters the code, and we poll.
  */
 
-export const GITHUB_APP_CLIENT_ID = "Iv23liXnwihcnEIdrvJl";
+/**
+ * Client ID of the ProAgents GitHub App — public by design (device flow needs
+ * no secret). Overridable via VITE_GITHUB_APP_CLIENT_ID at build time (see
+ * .env.example) so forks can ship their own app without code changes.
+ */
+export const GITHUB_APP_CLIENT_ID: string =
+  (import.meta.env.VITE_GITHUB_APP_CLIENT_ID as string | undefined) ?? "Iv23liXnwihcnEIdrvJl";
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const TOKEN_URL = "https://github.com/login/oauth/access_token";
 const API = "https://api.github.com";
