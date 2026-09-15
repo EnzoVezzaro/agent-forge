@@ -24,6 +24,7 @@ import {
 } from "../output/render.js";
 import type { AgentArchitecture, SelfImprovementPolicy } from "../core/types.js";
 import { runBenchmarkCommand } from "./benchmark.js";
+import { runCrewCommand } from "./crew.js";
 
 interface ParsedArgs {
   command: string;
@@ -74,6 +75,7 @@ Commands:
   inspect                   Dump full session state (for agents/humans)
   improve                   Show or configure self-improvement
   benchmark                 Benchmark subcommands (proagent benchmark help)
+  crew                      Marketplace crews: list/show/validate/install/publish (proagent crew help)
   help                      Show this help
 
 Global options:
@@ -546,6 +548,7 @@ async function main(): Promise<void> {
     case "inspect": return cmdInspect(flags);
     case "improve": return cmdImprove(args, flags);
     case "benchmark": return runBenchmarkCommand(args, flags);
+    case "crew": return runCrewCommand(args, flags);
     case "--version":
     case "-v":
     case "version":

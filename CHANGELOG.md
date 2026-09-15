@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-15
+
+### Added
+
+- **Crews & marketplace** — publishable bundles of specialized workers (skill + permission
+  model + tool allowlist + MCP servers + context bindings + artifact-passing handoff graph)
+- `proagent crew` CLI: `list`, `show`, `validate`, `install` (the one-liner: pulls a crew
+  into the repo you run it in — writes `.agents/crews/<id>/` skills/contracts and merges
+  `.mcp.json`), `publish` (commits to the Git-backed catalog via the GitHub Contents API)
+- Deterministic crew validation: permission vocabulary, unknown MCP/upstream references,
+  handoff-artifact integrity, acyclicity (DAG) — invalid crews are refused at install,
+  publish and download time
+- **Marketplace web app** (static SPA on GitHub Pages at `/app/`): catalog browsing,
+  crew detail with permission badges, **crew builder GUI** (the CLI interview as forms,
+  exporting the same `CrewDefinition` JSON), **preview-on-repo** (sign in, pick a repo, run
+  a crew on the fly with your own provider/model, install it via the GitHub API), settings
+  modal (provider/model/key, GitHub token, Clerk publishable key) — everything stored in
+  the browser's localStorage, zero backend
+- **Git-as-database catalog** (`.marketplace/`): reads are static same-origin fetches,
+  writes are reviewable commits through the GitHub Contents API (GitRows pattern); three
+  seed listings (2 crews + 1 agent)
+- **GitHub Device Flow auth** in the browser (ProAgents GitHub App client id only — no
+  client secret in the bundle) with PAT fallback
+- **Stripe Payment Links** for paid crews: sandbox link minted for the seed paid crew;
+  checkout happens on Stripe's domain, the static site never holds a secret key
+- 19 new tests (CREW-VALIDATE/INSTALL/REGISTRY/CLI), 159 total, all offline
+
 ## [0.3.0] - 2026-09-15
 
 ### Added

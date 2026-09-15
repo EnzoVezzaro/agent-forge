@@ -27,6 +27,7 @@ export default defineConfig({
     siteTitle: "ProAgents",
     nav: [
       { text: "Docs", link: "/guide/what-is-proagents", activeMatch: "/guide/" },
+      { text: "Marketplace", link: "/app/" },
       { text: "CLI", link: "/cli/", activeMatch: "/cli/" },
       {
         text: "Context",
@@ -66,6 +67,12 @@ export default defineConfig({
           items: [
             { text: "Benchmark system", link: "/guide/benchmarking" },
             { text: "Testing the benchmark", link: "/guide/benchmark-testing" },
+          ],
+        },
+        {
+          text: "Marketplace",
+          items: [
+            { text: "Marketplace & crews", link: "/guide/marketplace" },
           ],
         },
       ],

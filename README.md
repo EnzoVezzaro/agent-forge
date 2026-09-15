@@ -10,7 +10,7 @@ An open-source agentic CLI + Agent Skill that turns *"I want an agent that debug
 into a validated, buildable multi-agent system — through progressive questioning, pluggable
 context frameworks and deterministic architecture generation.
 
-`npm i -g proagent` · [Documentation](https://enzovezzaro.github.io/proagents/) · MIT
+`npm i -g proagent` · [Documentation](https://enzovezzaro.github.io/proagents/) · [Marketplace](https://enzovezzaro.github.io/proagents/app/) · MIT
 
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/EnzoVezzaro)
 [![Ko-fi](https://img.shields.io/badge/Support%20on-Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/enzojuniorvezzaro)
@@ -174,6 +174,40 @@ reference-agent suite (perfect / unsafe / flaky / cheating / …) tests the benc
 the framework must classify GOOD from BAD from CHEATING — and its own tests prove it does
 (140 offline tests, zero network, zero API keys). See the
 [benchmark docs](https://enzovezzaro.github.io/proagents/guide/benchmarking).
+
+## Marketplace & crews
+
+Buy pre-built **crews** (workers + permissions + MCP + context), or build your own in the
+browser — then pull any of them into a repo with one command:
+
+```bash
+npx proagent crew install incidere-incident-response
+```
+
+That writes the full crew into the repo: `.agents/crews/<id>/` (crew skill, per-worker
+skills + contracts) and a merged `.mcp.json` — ready for your agent runtime.
+
+The [marketplace app](https://enzovezzaro.github.io/proagents/app/) runs entirely in your
+browser on GitHub Pages:
+
+- **Catalog** — Git-as-database: the open repo is the data layer, every listing is a
+  reviewable JSON file, Pages serves reads
+- **Build your crew** — GUI counterpart of the CLI: workers with explicit permission
+  models (write/production/secrets + approval gates), MCP server bindings (stdio/http/sse
+  with tool allowlists), context scopes, artifact-passing handoff graph (must stay acyclic)
+- **Preview an agent on your repo** — sign in with GitHub (device flow, no secret), pick a
+  repo, run any crew on the fly with your own provider/model, then install it into the repo
+  via the GitHub API
+- **Buy** — Stripe Payment Links (the static site never touches a secret key)
+
+```bash
+proagent crew list            # browse the catalog
+proagent crew show <id>       # workers, permissions, MCP
+proagent crew install <id> --dry-run
+proagent crew publish <file.json>   # publish your own (commits to the catalog)
+```
+
+See the [marketplace guide](https://enzovezzaro.github.io/proagents/guide/marketplace).
 
 ## Development
 

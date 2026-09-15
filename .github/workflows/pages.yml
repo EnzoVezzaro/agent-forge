@@ -1,4 +1,4 @@
-name: Deploy docs to GitHub Pages
+name: Deploy docs and marketplace to GitHub Pages
 
 on:
   push:
@@ -26,6 +26,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: npm ci
       - run: bun --bun vitepress build docs
+      # Marketplace SPA → docs/.vitepress/dist/app (Vite base is /proagents/app/)
+      - run: npm ci --prefix web
+      - run: npm run build --prefix web
+      - run: cp -r web/dist docs/.vitepress/dist/app
       - uses: actions/configure-pages@v5
         with:
           enablement: true

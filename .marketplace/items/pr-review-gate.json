@@ -1,0 +1,69 @@
+{
+  "id": "pr-review-gate",
+  "name": "PR Review Gate",
+  "version": "1.0.0",
+  "description": "Two-worker pull-request review crew: a read-only security/architecture reviewer and a standards checker that drafts the review verdict for humans to approve. Strictly read-only on the repo.",
+  "author": "proagents",
+  "tags": ["code-review", "security", "quality", "multi-agent"],
+  "workers": [
+    {
+      "id": "reviewer",
+      "name": "Security & Architecture Reviewer",
+      "role": "researcher",
+      "description": "Deep review of the diff: security boundaries, permission drift, architectural fit.",
+      "permissions": {
+        "read": "repo",
+        "write": "none",
+        "production": "none",
+        "secrets": "none",
+        "tools": ["read_file", "git_diff", "git_log"],
+        "approvalGates": []
+      },
+      "mcpServers": ["github"],
+      "context": [
+        { "framework": "filesystem", "scope": "src/**" },
+        { "framework": "git", "scope": "history of changed files" }
+      ],
+      "instructions": "1. Read the full diff plus the surrounding code, not just changed lines.\n2. Classify findings: security, correctness, architecture, style.\n3. Every finding cites file:line and a concrete failure scenario.\n4. Emit review-findings.md. You never approve or merge — humans do.",
+      "receivesFrom": [],
+      "emits": ["review-findings.md"]
+    },
+    {
+      "id": "standards",
+      "name": "Standards Checker",
+      "role": "reviewer",
+      "description": "Checks the review findings against team standards and drafts the verdict block.",
+      "permissions": {
+        "read": "scoped",
+        "write": "none",
+        "production": "none",
+        "secrets": "none",
+        "tools": ["read_file"],
+        "approvalGates": []
+      },
+      "mcpServers": [],
+      "context": [
+        { "framework": "filesystem", "scope": "CONTRIBUTING.md, docs/standards/**" }
+      ],
+      "instructions": "1. Read review-findings.md and the team standards docs.\n2. Deduplicate findings; drop anything below the documented severity bar.\n3. Draft review-verdict.md: APPROVE / REQUEST_CHANGES / BLOCK with reasons.\n4. The verdict is a proposal — final decisions belong to humans.",
+      "receivesFrom": ["reviewer"],
+      "emits": ["review-verdict.md"]
+    }
+  ],
+  "mcpServers": [
+    {
+      "name": "github",
+      "transport": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "allowedTools": ["get_file_contents", "list_pull_request_files", "get_pull_request_diff"]
+    }
+  ],
+  "handoffs": [
+    { "from": "reviewer", "to": "standards", "artifact": "review-findings.md" }
+  ],
+  "entryPoints": ["reviewer"],
+  "pricing": { "currency": "usd", "amount": 1900 },
+  "checkoutUrl": "https://buy.stripe.com/test_8x2aEYgEM37UbdY8EffYY00",
+  "createdAt": "2026-09-15T00:00:00.000Z",
+  "updatedAt": "2026-09-15T00:00:00.000Z"
+}

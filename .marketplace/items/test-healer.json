@@ -1,0 +1,38 @@
+{
+  "id": "test-healer",
+  "name": "Test Healer",
+  "version": "1.0.0",
+  "description": "Single agent that diagnoses failing tests, separates real regressions from brittle assertions, and proposes minimal patches for humans to review.",
+  "author": "proagents",
+  "tags": ["testing", "ci", "debugging", "single-agent"],
+  "workers": [
+    {
+      "id": "healer",
+      "name": "Test Healer",
+      "role": "debugger",
+      "description": "Root-causes failing tests and proposes minimal fixes.",
+      "permissions": {
+        "read": "repo",
+        "write": "scoped",
+        "production": "none",
+        "secrets": "none",
+        "tools": ["read_file", "write_file", "test_runner", "git_log"],
+        "approvalGates": []
+      },
+      "mcpServers": [],
+      "context": [
+        { "framework": "filesystem", "scope": "tests/**, src/**" },
+        { "framework": "git", "scope": "commits touching failing files" }
+      ],
+      "instructions": "1. Run the failing suite; capture the exact failure output.\n2. Classify: real regression, brittle assertion, or environment drift.\n3. Propose the minimal patch; never weaken an assertion to make it pass.\n4. Emit healing-plan.md with before/after for each change.",
+      "receivesFrom": [],
+      "emits": ["healing-plan.md"]
+    }
+  ],
+  "mcpServers": [],
+  "handoffs": [],
+  "entryPoints": ["healer"],
+  "pricing": null,
+  "createdAt": "2026-09-15T00:00:00.000Z",
+  "updatedAt": "2026-09-15T00:00:00.000Z"
+}

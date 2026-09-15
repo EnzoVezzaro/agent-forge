@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-15T00:00:00.000Z",
+  "items": [
+    {
+      "id": "incidere-incident-response",
+      "name": "Incidere — Incident Response",
+      "version": "1.0.0",
+      "description": "Three-worker incident response crew: triage the signal, draft stakeholder comms, execute approval-gated mitigation. Reads your repo's runbooks and incident history for context.",
+      "author": "proagents",
+      "tags": ["incident-response", "sre", "on-call", "comms", "multi-agent"],
+      "kind": "crew",
+      "pricing": null,
+      "downloads": 0,
+      "createdAt": "2026-09-15T00:00:00.000Z",
+      "updatedAt": "2026-09-15T00:00:00.000Z"
+    },
+    {
+      "id": "pr-review-gate",
+      "name": "PR Review Gate",
+      "version": "1.0.0",
+      "description": "Two-worker pull-request review crew: a read-only security/architecture reviewer and a standards checker that drafts the review verdict for humans to approve. Strictly read-only on the repo.",
+      "author": "proagents",
+      "tags": ["code-review", "security", "quality", "multi-agent"],
+      "kind": "crew",
+      "pricing": { "currency": "usd", "amount": 1900 },
+      "checkoutUrl": "https://buy.stripe.com/test_8x2aEYgEM37UbdY8EffYY00",
+      "downloads": 0,
+      "createdAt": "2026-09-15T00:00:00.000Z",
+      "updatedAt": "2026-09-15T00:00:00.000Z"
+    },
+    {
+      "id": "test-healer",
+      "name": "Test Healer",
+      "version": "1.0.0",
+      "description": "Single agent that diagnoses failing tests, separates real regressions from brittle assertions, and proposes minimal patches for humans to review.",
+      "author": "proagents",
+      "tags": ["testing", "ci", "debugging", "single-agent"],
+      "kind": "agent",
+      "pricing": null,
+      "downloads": 0,
+      "createdAt": "2026-09-15T00:00:00.000Z",
+      "updatedAt": "2026-09-15T00:00:00.000Z"
+    }
+  ]
+}
