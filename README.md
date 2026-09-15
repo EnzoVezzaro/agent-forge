@@ -75,6 +75,52 @@ proagent validate    # deterministic checks — errors block the build
 proagent build       # → .agents/skills/<agent>/SKILL.md + agent.json
 ```
 
+## Working in an existing repo
+
+Already have code? Run `proagent init` **at the repo root** — the session reads your
+project while it interviews you, so questions and the generated architecture are grounded
+in your actual stack instead of generic guesses:
+
+```bash
+cd my-existing-repo
+
+# 1. start a session anchored to this repo (pass --context to index extra dirs)
+proagent init --intent "An agent that reviews our PRs for security issues" \
+  --context src --context docs
+
+# 2. answer the interview — every answer updates readiness and confidence
+proagent question                     # next highest-value question
+proagent answer q_001 "Read-only reviewer; proposes patches, never pushes"
+
+# 3. (optional) pull scoped context from the repo into the session
+proagent context "auth & session handling" --context-framework filesystem --scope src/auth/**
+
+# 4. generate + build, right here in the repo
+proagent spec && proagent validate && proagent build
+# → .agents/skills/<agent>/SKILL.md (the agent's skill + normative permissions)
+# → .agents/agent-architecture.json (the full machine-readable contract)
+```
+
+What the agent reads from your repo (deterministically — same tree, same questions):
+
+- **package manifests & lockfiles** → runtime, languages, frameworks
+- **directory structure** → context scopes the generated agent may request
+- **CI configs & tests** → validation steps the agent must respect
+- **existing `.agents/` skills** → team conventions the new agent should follow
+
+Prefer the GUI? `Build a crew → Start from your repo` in the
+[marketplace app](https://enzovezzaro.github.io/proagents/app/) does the same analysis
+visually and drafts an editable crew from your repo's shape.
+
+Handy follow-ups in the same repo:
+
+```bash
+proagent agents                 # list the generated team
+proagent improve                # self-improvement policy (propose/supervised/auto)
+proagent benchmark run <suite>  # evaluate the generated system (see Benchmarking)
+npx proagent crew install <id>  # or install a ready-made crew from the marketplace
+```
+
 ## For AI agents
 
 ProAgents is agent-agnostic and JSON-first — every operation has deterministic
